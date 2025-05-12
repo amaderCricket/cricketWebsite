@@ -29,12 +29,6 @@
           const cacheKeys = ['cricket_data_metadata', 'cricket_data_summary', 'cricket_data_players', 'last_match_data', 'cached_last_match', 'cached_players_data'];
           cacheKeys.forEach(key => localStorage.removeItem(key));
           
-          // Also clear player image caches
-          Object.keys(localStorage).forEach(key => {
-            if (key.startsWith('player_image_')) {
-              localStorage.removeItem(key);
-            }
-          });
         }
       }
       
