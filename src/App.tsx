@@ -11,7 +11,7 @@ import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
 import { useCacheInitializer } from './hooks/useCacheInitializer'
 import { prefetchMatchData } from './services/matchDataService'
-import { recordAppOpen } from './utils/timestampMonitor'
+
 
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
@@ -26,7 +26,7 @@ function App() {
   useEffect(() => {
     themeService.initializeTheme();
     fontService.initializeFonts();
-     recordAppOpen();
+
      prefetchMatchData().catch(err => {
       console.error('Error prefetching match data:', err);
     });
