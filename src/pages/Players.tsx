@@ -4,14 +4,22 @@ import { usePlayerData } from '../hooks/usePlayerData';
 import { useState, useEffect } from 'react';
 import { getPlayerImage } from '../utils/imageUtils';
 import { PlayerData } from '../types/playerTypes';
-import Preloader from '../components/common/PreLoader';
-import { AnimatePresence } from 'framer-motion';
 import AnimatedPage from '../components/common/layout/AnimatedPage'
 import { cacheService } from '../services/cacheService';
+
+// Empty placeholder component - no preloader
+const EmptyPlaceholder = () => (
+  <div className="players-page">
+    <div className="container section" style={{ minHeight: '60vh' }}>
+      {/* Intentionally empty */}
+    </div>
+  </div>
+);
 
 function Players() {
   const { players, loading, error, refreshData } = usePlayerData();
   const [playersWithImages, setPlayersWithImages] = useState<PlayerData[]>([]);
+  const [imgLoaded, setImgLoaded] = useState<{[key: string]: boolean}>({});
 
   // Function to determine player role based on the correct thresholds
   const determinePlayerRole = (playerData: PlayerData): string => {
@@ -40,10 +48,9 @@ function Players() {
   };
 
 
-   useEffect(() => {
+  useEffect(() => {
     // Subscribe to cache updates
     const removeListener = cacheService.onUpdate(() => {
-      // console.log("Players: Cache updated, refreshing data");
       refreshData(); // Refresh the players data when an update occurs
     });
     
@@ -51,41 +58,85 @@ function Players() {
     return () => removeListener();
   }, [refreshData]);
 
+  // Manage image loading status
+  const handleImageLoad = (playerName: string) => {
+    setImgLoaded(prev => ({
+      ...prev,
+      [playerName]: true
+    }));
+  };
+
   // Snippet for Players.tsx - update the useEffect for loading images:
   useEffect(() => {
+    // Store initial set of players with blank images
+    const initialPlayers = players.map(player => ({
+      ...player,
+      imageUrl: '/src/assets/players/blank_image.png',
+      role: determinePlayerRole(player)
+    }));
+    
+    // Set the initial list immediately
+    if (initialPlayers.length > 0) {
+      setPlayersWithImages(initialPlayers);
+    }
+    
+    // Then load real images in the background
     const loadImages = async () => {
-      if (players.length > 0) {
-        const updatedPlayers = await Promise.all(
-          players.map(async (player) => {
-            const imageUrl = await getPlayerImage({ 
-              name: player.name, 
-              playerNameForImage: player.playerNameForImage 
-            });
+      if (players.length === 0) return;
+  
+      const updatedPlayers = [...initialPlayers];
+      
+      // Process players in batches to prevent UI freeze
+      for (let i = 0; i < players.length; i += 3) {
+        const batch = players.slice(i, i + 3);
+        
+        // Process batch in parallel
+        await Promise.all(batch.map(async (player, batchIndex) => {
+          try {
+            // Check localStorage cache first
+            const cachedImageUrl = localStorage.getItem(`player_image_${player.playerNameForImage}`);
             
-            // Calculate the correct role using our threshold function
-            const role = determinePlayerRole(player);
-            
-            // Add both the image URL and the calculated role
-            return { ...player, imageUrl, role };
-          })
-        );
-        setPlayersWithImages(updatedPlayers);
+            if (cachedImageUrl) {
+              // Use cached image immediately
+              const index = i + batchIndex;
+              if (index < updatedPlayers.length) {
+                updatedPlayers[index].imageUrl = cachedImageUrl;
+                // Update state with this one loaded image
+                setPlayersWithImages([...updatedPlayers]);
+                handleImageLoad(player.name);
+              }
+            } else {
+              // Fetch image if not cached
+              const imageUrl = await getPlayerImage({ 
+                name: player.name, 
+                playerNameForImage: player.playerNameForImage 
+              });
+              
+              const index = i + batchIndex;
+              if (index < updatedPlayers.length) {
+                updatedPlayers[index].imageUrl = imageUrl;
+                // Update state with this one loaded image
+                setPlayersWithImages([...updatedPlayers]);
+                handleImageLoad(player.name);
+              }
+            }
+          } catch (error) {
+            console.error(`Error loading image for ${player.name}:`, error);
+          }
+        }));
+        
+        // Small delay between batches to let UI breathe
+        if (i + 3 < players.length) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+        }
       }
     };
   
     loadImages();
   }, [players]);
 
-  if (loading) {
-    return (
-      <div className="players-page">
-        <div className="container section">
-        <AnimatePresence>
-          {loading && <Preloader />}
-        </AnimatePresence>
-        </div>
-      </div>
-    );
+  if (loading && players.length === 0) {
+    return <EmptyPlaceholder />;
   }
 
   if (error) {
@@ -112,7 +163,12 @@ function Players() {
                 <div className="player-image-container">
                 <div 
                     className="player-image" 
-                    style={{ backgroundImage: `url(${player.imageUrl})` }}
+                    style={{ 
+                        backgroundImage: `url(${player.imageUrl})`,
+                        transition: 'opacity 0.3s ease-in',
+                        opacity: imgLoaded[player.name] ? 1 : 0.5
+                    }}
+                    onLoad={() => handleImageLoad(player.name)}
                 ></div>
                 <div className="player-rank-badge">Rank #{player.rank}</div>
                 </div>
