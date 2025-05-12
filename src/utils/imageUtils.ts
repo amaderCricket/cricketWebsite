@@ -1,35 +1,27 @@
-// src/utils/imageUtils.ts
-// Import the blank image as a fallback
+// Modified src/utils/imageUtils.ts
 import blankImage from '../assets/players/blank_image.png';
 
-// Create an in-memory cache to avoid redundant imports
+// In-memory cache for images
 const imageCache: Record<string, string> = {};
 
 export const getPlayerImage = async (player: {
   name: string;
   playerNameForImage: string;
 }): Promise<string> => {
-  // First check localStorage cache
-  const localCacheKey = `player_image_${player.playerNameForImage}`;
-  const cachedUrl = localStorage.getItem(localCacheKey);
-  if (cachedUrl) {
-    return cachedUrl;
+  const cacheKey = player.playerNameForImage;
+  
+  // Return from cache if available
+  if (imageCache[cacheKey]) {
+    return imageCache[cacheKey];
   }
-
-  // Then check memory cache
-  if (imageCache[player.playerNameForImage]) {
-    // Save to localStorage for future visits
-    localStorage.setItem(localCacheKey, imageCache[player.playerNameForImage]);
-    return imageCache[player.playerNameForImage];
-  }
-
+  
   try {
     // Try to dynamically import the JPG
     const jpgModule = await import(`../assets/players/${player.playerNameForImage}.jpg`).catch(() => null);
     
     if (jpgModule) {
-      imageCache[player.playerNameForImage] = jpgModule.default;
-      localStorage.setItem(localCacheKey, jpgModule.default);
+      // Store in cache and return
+      imageCache[cacheKey] = jpgModule.default;
       return jpgModule.default;
     }
 
@@ -37,17 +29,43 @@ export const getPlayerImage = async (player: {
     const pngModule = await import(`../assets/players/${player.playerNameForImage}.png`).catch(() => null);
     
     if (pngModule) {
-      imageCache[player.playerNameForImage] = pngModule.default;
-      localStorage.setItem(localCacheKey, pngModule.default);
+      // Store in cache and return
+      imageCache[cacheKey] = pngModule.default;
       return pngModule.default;
     }
 
-    // If both fail, return blank image
-    localStorage.setItem(localCacheKey, blankImage);
+    // If both fail, cache and return blank image
+    imageCache[cacheKey] = blankImage;
     return blankImage;
   } catch (error) {
     console.error(`Error loading image for player ${player.name}:`, error);
-    localStorage.setItem(localCacheKey, blankImage);
+    // Cache the blank image for failed attempts too
+    imageCache[cacheKey] = blankImage;
     return blankImage;
+  }
+};
+
+// New function to preload images for multiple players
+export const preloadPlayerImages = async (playerNames: string[]): Promise<void> => {
+  // Limit concurrent requests to avoid overwhelming the browser
+  const BATCH_SIZE = 5;
+  const batches = [];
+  
+  // Split into batches
+  for (let i = 0; i < playerNames.length; i += BATCH_SIZE) {
+    batches.push(playerNames.slice(i, i + BATCH_SIZE));
+  }
+  
+  // Process each batch sequentially
+  for (const batch of batches) {
+    // Process images in a batch concurrently
+    await Promise.all(
+      batch.map(playerName => 
+        getPlayerImage({ 
+          name: playerName, 
+          playerNameForImage: playerName 
+        })
+      )
+    );
   }
 };

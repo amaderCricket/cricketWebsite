@@ -11,7 +11,7 @@ import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
 import { useCacheInitializer } from './hooks/useCacheInitializer'
 import { prefetchMatchData } from './services/matchDataService'
-
+import {cacheService} from './services/cacheService'
 
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
@@ -34,17 +34,47 @@ const LightLoader = () => (
 function App() {
   const { isInitialized } = useCacheInitializer();
   
-  useEffect(() => {
-    themeService.initializeTheme();
-    fontService.initializeFonts();
+useEffect(() => {
+  themeService.initializeTheme();
+  fontService.initializeFonts();
 
-    // Start prefetch in background without blocking
-    setTimeout(() => {
-      prefetchMatchData().catch(err => {
-        console.error('Error prefetching match data:', err);
-      });
-    }, 2000);
-  }, []);
+  prefetchMatchData().catch(err => {
+    console.error('Error prefetching match data:', err);
+  });
+  
+  // Add this new code to preload top player images
+  const preloadTopPlayerImages = async () => {
+    try {
+      // Fetch players data
+      const playersData = await cacheService.fetchPlayers();
+      
+      if (playersData && playersData.stats && Array.isArray(playersData.stats)) {
+        // Extract top 10 player names from the data
+        const playerNames: string[] = [];
+        const dataRows = playersData.stats.slice(1); // Skip header row
+        
+        for (let i = 0; i < Math.min(10, dataRows.length); i++) {
+          const row = dataRows[i];
+          if (row[0]) { // Assuming first column is player name
+            playerNames.push(String(row[0]));
+          }
+        }
+        
+        // Preload images for these players
+        if (playerNames.length > 0) {
+          import('./utils/imageUtils').then(({ preloadPlayerImages }) => {
+            preloadPlayerImages(playerNames);
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error preloading player images:', error);
+    }
+  };
+  
+  // Start preloading after a short delay to not block initial render
+  setTimeout(preloadTopPlayerImages, 1000);
+}, []);
   
 
   return (
