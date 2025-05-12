@@ -21,13 +21,7 @@ export interface LastMatchInfo {
   players: PlayerTeamInfo[];
 }
 
-interface MatchDataResponse {
-  _metadata?: {
-    lastUpdated: number;
-  };
-  'Match Data': unknown[][];
-  [key: string]: unknown;
-}
+
 
 const CACHE_KEY = API_CONFIG.MATCH_KEY;
 const CACHE_METADATA_KEY = API_CONFIG.MATCH_METADATA_KEY;
@@ -180,7 +174,7 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
       });
       responseData = response.data;
     } catch (directError) {
-      // console.log("Direct API access failed, trying CORS proxy:", directError);
+      console.log("Direct API access failed, trying CORS proxy:", directError);
       
       // Try with CORS proxy
       try {
