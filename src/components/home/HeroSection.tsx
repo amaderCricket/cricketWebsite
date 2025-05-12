@@ -1,5 +1,8 @@
 // src/components/home/HeroSection.tsx
 import { useEffect, useState, useRef } from 'react'
+import hero1 from '../../assets/hero/hero_1.jpg';
+import hero2 from '../../assets/hero/hero_2.jpg';
+import hero3 from '../../assets/hero/hero_3.jpg';
 
 function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
@@ -9,17 +12,17 @@ function HeroSection() {
   
   const slides = [
     {
-      imageUrl: '/assets/hero/hero_1.jpg',
+      imageUrl: hero1,
       title: 'Lets Play Cricket',
       subtitle: 'Where Colleagues Become Competitors',
     },
     {
-      imageUrl: '/assets/hero/hero_2.jpg',
+      imageUrl: hero2,
       title: 'Office League',
       subtitle: 'Break The Stamps!',
     },
     {
-      imageUrl: '/assets/hero/hero_3.jpg',
+      imageUrl: hero3,
       title: 'Join the Game',
       subtitle: 'Sign up for the next match',
     }
