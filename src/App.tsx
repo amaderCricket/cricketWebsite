@@ -6,6 +6,7 @@ import Players from './pages/Players'
 import PlayerDetail from './pages/PlayerDetail'
 import Leaderboard from './pages/Leaderboard'
 import HallOfFame  from './pages/HallofFame'
+import Rules from './pages/Rules'
 
 import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
@@ -80,6 +81,9 @@ useEffect(() => {
                 <Route path="/players/:id" element={<PlayerDetail />} />
                 <Route path="/hall-of-fame" element={<HallOfFame />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/rules" element={<Rules />} />
+               
+                
               </Routes>
             </Suspense>
           )}

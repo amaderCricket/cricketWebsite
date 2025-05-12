@@ -114,6 +114,10 @@ function Header() {
     navigate(path);
     setMenuOpen(false);
   };
+
+   const handleDownloadClick = () => {
+    window.open('https://drive.google.com/drive/folders/your-folder-id', '_blank');
+  };
   
   return (
     <header className={`header ${isScrolled ? 'scrolled' : ''} ${isHomePage ? 'home-page' : 'other-page'} ${menuOpen ? 'menu-open' : ''}`}>
@@ -153,6 +157,7 @@ function Header() {
             <li><button className={isActive('/players') ? 'active' : ''} onClick={() => handleNavigation('/players')}>Players</button></li>
             <li><button className={isActive('/hall-of-fame') ? 'active' : ''} onClick={() => handleNavigation('/hall-of-fame')}>Hall of Fame</button></li>
             <li><button className={isActive('/leaderboard') ? 'active' : ''} onClick={() => handleNavigation('/leaderboard')}>Leaderboard</button></li>
+            <li><button className={isActive('/rules') ? 'active' : ''} onClick={() => handleNavigation('/rules')}>Rules</button></li>
           </ul>
         </nav>
 
@@ -160,6 +165,15 @@ function Header() {
         <div className="action-buttons">
           {/* Search */}
           <SearchBar players={playersWithImages} />
+
+          <button 
+            className="download-button" 
+            onClick={handleDownloadClick}
+            aria-label="Download from Google Drive"
+            title="Download from Google Drive"
+          >
+            <i className="material-icons">cloud_download</i>
+          </button>
           
           {/* Theme Toggle Button */}
           <button 

@@ -13,6 +13,13 @@ export interface PlayerTeamInfo {
   playerName: string;
   teams: string[];
   isManOfMatch?: boolean;
+  // Add individual player stats
+  runsScored?: number | string;
+  ballsFaced?: number | string;
+  dismissals?: number | string;
+  runsGiven?: number | string;
+  ballsBowled?: number | string;
+  wicketsTaken?: number | string;
 }
 
 export interface LastMatchInfo {
@@ -20,8 +27,6 @@ export interface LastMatchInfo {
   teams: TeamResult[];
   players: PlayerTeamInfo[];
 }
-
-
 
 const CACHE_KEY = API_CONFIG.MATCH_KEY;
 const CACHE_METADATA_KEY = API_CONFIG.MATCH_METADATA_KEY;
@@ -39,9 +44,6 @@ const columnToIndex = (column: string): number => {
 };
 
 const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
-  // console.log('Parsing match data:', matchData);
-  // console.log('Total rows:', matchData.length);
-  
   // Check if first row looks like a header
   const firstRow = matchData[0];
   let dataRows: unknown[][];
@@ -49,15 +51,11 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
   // Check if the first row is a header by looking at the data types
   // If the first row has dates/numbers in expected positions, it's data, not a header
   if (firstRow && typeof firstRow[0] === 'string' && firstRow[0].includes('T')) {
-    
     dataRows = matchData;
   } else {
     // First row is likely a header, skip it
-    
     dataRows = matchData.slice(1);
   }
-  
-  // console.log('Data rows to process:', dataRows.length);
   
   if (dataRows.length === 0) {
     console.error('No data rows found');
@@ -65,19 +63,36 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
   }
   
   // Column indices
-  const dateIndex = columnToIndex('A');    // 0
-  const playerIndex = columnToIndex('B');  // 1
-  const momIndex = columnToIndex('U');    // 20
-  const teamIndex = columnToIndex('V');    // 21
-  const resultIndex = columnToIndex('W');  // 22
-  const scoreIndex = columnToIndex('Y');   // 24
+  const dateIndex = columnToIndex('A');      // 0
+  const playerIndex = columnToIndex('B');    // 1
+  const momIndex = columnToIndex('U');       // 20
+  const teamIndex = columnToIndex('V');      // 21
+  const resultIndex = columnToIndex('W');    // 22
+  const scoreIndex = columnToIndex('Y');     // 24
+  
+  // Individual player stat indices
+  const runsIndex = columnToIndex('D');      // 3
+  const ballsFacedIndex = columnToIndex('E'); // 4
+  const dismissalsIndex = columnToIndex('F'); // 5
+  const runsGivenIndex = columnToIndex('G'); // 6
+  const ballsBowledIndex = columnToIndex('H'); // 7
+  const wicketsIndex = columnToIndex('I');   // 8
   
   // Extract date from first data row
   const firstDataRow = dataRows[0] as (string | number | unknown)[];
   const date = firstDataRow && firstDataRow[dateIndex] ? String(firstDataRow[dateIndex]) : 'Unknown Date';
   const teams: TeamResult[] = [];
   const players: PlayerTeamInfo[] = [];
-  const playerMap = new Map<string, { teams: Set<string>; isManOfMatch: boolean }>();
+  const playerMap = new Map<string, { 
+    teams: Set<string>; 
+    isManOfMatch: boolean;
+    runsScored?: string | number;
+    ballsFaced?: string | number;
+    dismissals?: string | number;
+    runsGiven?: string | number;
+    ballsBowled?: string | number;
+    wicketsTaken?: string | number;
+  }>();
   
   // Process each row
   dataRows.forEach((row: unknown[]) => {
@@ -87,6 +102,14 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
     const result = rowData[resultIndex] ? String(rowData[resultIndex]).trim() : '';
     const score = rowData[scoreIndex] ? String(rowData[scoreIndex]).trim() : '';
     const momValue = rowData[momIndex] ? String(rowData[momIndex]).toLowerCase().trim() : '';
+    
+    // Extract player stats
+    const runsScored = typeof rowData[runsIndex] === 'string' || typeof rowData[runsIndex] === 'number' ? rowData[runsIndex] as string | number : undefined;
+    const ballsFaced = typeof rowData[ballsFacedIndex] === 'string' || typeof rowData[ballsFacedIndex] === 'number' ? rowData[ballsFacedIndex] as string | number : undefined;
+    const dismissals = typeof rowData[dismissalsIndex] === 'string' || typeof rowData[dismissalsIndex] === 'number' ? rowData[dismissalsIndex] as string | number : undefined;
+    const runsGiven = typeof rowData[runsGivenIndex] === 'string' || typeof rowData[runsGivenIndex] === 'number' ? rowData[runsGivenIndex] as string | number : undefined;
+    const ballsBowled = typeof rowData[ballsBowledIndex] === 'string' || typeof rowData[ballsBowledIndex] === 'number' ? rowData[ballsBowledIndex] as string | number : undefined;
+    const wicketsTaken = typeof rowData[wicketsIndex] === 'string' || typeof rowData[wicketsIndex] === 'number' ? rowData[wicketsIndex] as string | number : undefined;
     
     // Process teams
     if (teamName && teamName !== 'Both Teams') {
@@ -105,8 +128,37 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
     if (playerName && !playerMap.has(playerName)) {
       playerMap.set(playerName, {
         teams: new Set<string>(),
-        isManOfMatch: false
+        isManOfMatch: false,
+        runsScored,
+        ballsFaced,
+        dismissals,
+        runsGiven,
+        ballsBowled,
+        wicketsTaken
       });
+    } else if (playerName) {
+      // Update existing player with stats if not already set
+      const existingPlayer = playerMap.get(playerName);
+      if (existingPlayer) {
+        if (runsScored !== undefined && existingPlayer.runsScored === undefined) {
+          existingPlayer.runsScored = runsScored;
+        }
+        if (ballsFaced !== undefined && existingPlayer.ballsFaced === undefined) {
+          existingPlayer.ballsFaced = ballsFaced;
+        }
+        if (dismissals !== undefined && existingPlayer.dismissals === undefined) {
+          existingPlayer.dismissals = dismissals;
+        }
+        if (runsGiven !== undefined && existingPlayer.runsGiven === undefined) {
+          existingPlayer.runsGiven = runsGiven;
+        }
+        if (ballsBowled !== undefined && existingPlayer.ballsBowled === undefined) {
+          existingPlayer.ballsBowled = ballsBowled;
+        }
+        if (wicketsTaken !== undefined && existingPlayer.wicketsTaken === undefined) {
+          existingPlayer.wicketsTaken = wicketsTaken;
+        }
+      }
     }
     
     if (playerName) {
@@ -135,7 +187,13 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
     players.push({
       playerName,
       teams: Array.from(playerData.teams),
-      isManOfMatch: playerData.isManOfMatch
+      isManOfMatch: playerData.isManOfMatch,
+      runsScored: playerData.runsScored,
+      ballsFaced: playerData.ballsFaced,
+      dismissals: playerData.dismissals,
+      runsGiven: playerData.runsGiven,
+      ballsBowled: playerData.ballsBowled,
+      wicketsTaken: playerData.wicketsTaken
     });
   });
   
@@ -152,7 +210,6 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
     if (!forceRefresh) {
       const cachedData = localStorage.getItem(CACHE_KEY);
       if (cachedData && !cacheService.isCacheExpired(CACHE_KEY)) {
-        // console.log('Using cached match data');
         
         // Check for updates in background
         setTimeout(() => {
@@ -162,8 +219,6 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
         return JSON.parse(cachedData) as LastMatchInfo;
       }
     }
-    
-    // console.log('Fetching fresh match data from API...');
     
     let responseData;
     
@@ -179,12 +234,10 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
       // Try with CORS proxy
       try {
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(API_CONFIG.baseUrl)}?type=all`;
-        // console.log(`Trying proxy: ${proxyUrl}`);
         const response = await axios.get(proxyUrl, { 
           timeout: 15000 // 15 second timeout
         });
         responseData = response.data;
-        // console.log("Proxy success:", CORS_PROXY);
       } catch (proxyError) {
         console.error('CORS proxy also failed:', proxyError);
         throw new Error('Both direct and proxy API calls failed');
@@ -212,10 +265,8 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
       };
       localStorage.setItem(CACHE_METADATA_KEY, JSON.stringify(metadata));
       
-      // console.log('Data cached successfully');
       return parsedData;
     } else {
-      // console.error('Failed to parse match data');
       return null;
     }
     
@@ -225,7 +276,6 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
     // Try to use cached data as fallback
     const cachedData = localStorage.getItem(CACHE_KEY);
     if (cachedData) {
-      // console.log('Using cached data as fallback after error');
       return JSON.parse(cachedData) as LastMatchInfo;
     }
     
@@ -239,7 +289,6 @@ const checkForUpdatesInBackground = async (): Promise<void> => {
     // Check if data needs update
     const needsUpdate = await cacheService.checkForUpdates();
     if (needsUpdate) {
-      // console.log('Match data needs update, fetching in background...');
       await fetchLastMatchData(true);
     }
   } catch (error) {
@@ -252,10 +301,7 @@ export const prefetchMatchData = async (): Promise<void> => {
   try {
     const cachedData = localStorage.getItem(CACHE_KEY);
     if (!cachedData || cacheService.isCacheExpired(CACHE_KEY)) {
-      // console.log('Prefetching match data...');
       await fetchLastMatchData(true);
-    } else {
-      // console.log('Match data already cached, skipping prefetch');
     }
   } catch (error) {
     console.error('Error prefetching match data:', error);

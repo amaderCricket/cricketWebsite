@@ -317,6 +317,33 @@
   position: relative;
   z-index: 1002;
   
+
+
+  .download-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: white;
+    padding: 0.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.3s ease, color 0.3s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+      color: var(--accentColorLight);
+      [data-theme="dark"] & {
+        color: var(--accentColor);
+      }
+    }
+    
+    i {
+      font-size: 22px;
+    }
+  }
+  
+
   // Ensure search button is visible
   .expandable-search {
     display: block;

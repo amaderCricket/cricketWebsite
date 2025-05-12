@@ -6,9 +6,7 @@ import hero3 from '../../assets/hero/hero_3.jpg';
 
 function HeroSection() {
   const [currentSlide, setCurrentSlide] = useState(0);
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const intervalRef = useRef<number | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
   
   const slides = [
     {
@@ -28,51 +26,6 @@ function HeroSection() {
     }
   ];
 
-  // Mouse tracking for cricket ball
-    useEffect(() => {
-      let animationId: number;
-      let targetX = 0;
-      let targetY = 0;
-      let currentX = 0;
-      let currentY = 0;
-      const handleMouseMove = (e: MouseEvent) => {
-        if (containerRef.current) {
-          const rect = containerRef.current.getBoundingClientRect();
-          targetX = e.clientX - rect.left;
-          targetY = e.clientY - rect.top;
-        }
-      };
-
-    // Smooth animation loop
-        const animate = () => {
-          // Lerp (linear interpolation) for smooth movement
-          currentX += (targetX - currentX) * 0.1;
-          currentY += (targetY - currentY) * 0.1;
-          
-          setMousePosition({
-            x: currentX,
-            y: currentY
-          });
-          
-          animationId = requestAnimationFrame(animate);
-        };
-
-        const container = containerRef.current;
-        if (container) {
-          container.addEventListener('mousemove', handleMouseMove);
-          animate();
-        }
-
-        return () => {
-          if (container) {
-            container.removeEventListener('mousemove', handleMouseMove);
-          }
-          if (animationId) {
-            cancelAnimationFrame(animationId);
-          }
-        };
-        }, []);
-
   // Auto slide
   useEffect(() => {
     intervalRef.current = window.setInterval(() => {
@@ -91,18 +44,9 @@ function HeroSection() {
   };
   
   return (
-    <section className="hero-section" ref={containerRef}>
+    <section className="hero-section">
       {/* Simple gradient overlay */}
       <div className="hero-gradient-overlay" />
-      
-      {/* Moving cricket ball */}
-      <div 
-        className="cricket-ball-float"
-        style={{
-          left: `${mousePosition.x}px`,
-          top: `${mousePosition.y}px`
-        }}
-      />
       
       {/* Slider with CSS transitions */}
       <div className="hero-slider">

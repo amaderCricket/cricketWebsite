@@ -4,30 +4,69 @@ import { Link } from 'react-router-dom';
 import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
 
+// Enhanced interface to include individual stats
 interface PlayerWithImage extends PlayerTeamInfo {
   imageUrl: string;
+  runsScored?: number | string;
+  ballsFaced?: number | string;
+  dismissals?: number | string;
+  runsGiven?: number | string;
+  ballsBowled?: number | string;
+  wicketsTaken?: number | string;
 }
 
+// Format player stats into a readable string
+const formatPlayerStats = (player: PlayerWithImage): string => {
+  let stats = '';
+  
+  // Batting stats
+  if (player.runsScored !== undefined && player.ballsFaced !== undefined) {
+    // Add asterisk for not out
+    const notOut = player.dismissals === 0 || player.dismissals === '0';
+    stats += `${player.runsScored}${notOut ? '*' : ''}(${player.ballsFaced})`;
+  }
+  
+  // Bowling stats - only add if wickets were taken
+  if (player.wicketsTaken !== undefined && 
+      Number(player.wicketsTaken) > 0) {
+    // Add separator if we already have batting stats
+    if (stats) stats += ' ';
+    stats += `/ W (${player.wicketsTaken})`;
+  }
+  
+  return stats;
+};
+
 // Memoized player item component to prevent re-renders
-const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => (
-  <li className="player-item">
-    <Link to={`/players/${player.playerName}`} className="player-link">
-      <div 
-        className="player-avatar"
-        style={{ backgroundImage: `url(${player.imageUrl})` }}
-      />
-      <div className="player-info">
-        <span className="player-name">{player.playerName}</span>
-        {player.isManOfMatch && (
-          <span className="mom-badge">
-            <i className="material-icons">star</i>
-            MoM
-          </span>
-        )}
-      </div>
-    </Link>
-  </li>
-));
+const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => {
+  // Format the player stats
+  const statsString = formatPlayerStats(player);
+  
+  return (
+    <li className="player-item">
+      <Link to={`/players/${player.playerName}`} className="player-link">
+        <div 
+          className="player-avatar"
+          style={{ backgroundImage: `url(${player.imageUrl})` }}
+        />
+        <div className="player-info">
+          <span className="player-name">{player.playerName}</span>
+          {statsString && (
+            <span className="player-match-stats">
+              {statsString}
+            </span>
+          )}
+          {player.isManOfMatch && (
+            <span className="mom-badge">
+              <i className="material-icons">star</i>
+              MoM
+            </span>
+          )}
+        </div>
+      </Link>
+    </li>
+  );
+});
 
 PlayerItem.displayName = 'PlayerItem';
 
@@ -38,7 +77,7 @@ function LastMatchCard() {
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
   
-  // Memoize player lists - moved BEFORE any early returns
+  // Memoize player lists with enhanced stats
   const { winnerPlayers, loserPlayers } = useMemo(() => {
     if (!matchData || !matchData.players) {
       return { winnerPlayers: [], loserPlayers: [] };
@@ -51,9 +90,16 @@ function LastMatchCard() {
       return { winnerPlayers: [], loserPlayers: [] };
     }
     
+    // Create enhanced player objects with stats and image URLs
     const playersWithImgs = matchData.players.map((player): PlayerWithImage => ({
       ...player,
-      imageUrl: playerImages[player.playerName] || '/src/assets/players/blank_image.png'
+      imageUrl: playerImages[player.playerName] || '/src/assets/players/blank_image.png',
+      runsScored: player.runsScored,
+      ballsFaced: player.ballsFaced,
+      dismissals: player.dismissals,
+      runsGiven: player.runsGiven,
+      ballsBowled: player.ballsBowled,
+      wicketsTaken: player.wicketsTaken
     }));
     
     const winnerPlayersList = playersWithImgs.filter(player => 

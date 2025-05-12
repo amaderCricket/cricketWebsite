@@ -172,7 +172,7 @@
       .player-link {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        justify-content: space-between; // Position name on left, stats on right
         padding: 0.5rem;
         border-radius: 0.5rem;
         text-decoration: none;
@@ -202,25 +202,54 @@
         background-color: var(--surfaceColor); // Fallback color
       }
       
+      .player-info {
+        position: relative; 
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-grow: 1;
+      }
+
       .player-name {
+        margin-left: 0.5rem;
         font-size: 0.9rem;
         color: var(--textPrimary);
         font-family: var(--fontMono);
         transition: color 0.2s ease;
       }
 
-       .mom-badge {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
+      // Player stats styling
+      .player-match-stats {
+        font-family: var(--fontMono); // Different font for stats
+        font-size: 0.85rem;
+       
+        color: var(--primaryColor); // Use primary color for visibility
+        margin-left: auto; // Push to the right side
+        padding-left: 8px; // Add some spacing
+        white-space: nowrap; // Prevent wrapping
+        
+        [data-theme="dark"] & {
+          color: var(--accentColor); // Use accent color in dark mode
+        }
+      }
+
+      .mom-badge {
+        position: absolute;
+        left: auto; // Reset left
+        right: auto; // Reset right
+        margin-left: 5px; // Small margin after the name
+        position: relative; // Change to relative
+        display: inline-block; // Display inline
+        top: 0; // Reset top
+        transform: none; // Reset transform
         background: linear-gradient(45deg, #FFD700, #FFA500);
-        color: #000;
+        color: #161616;
         padding: 0.225rem 0.9rem;
         border-radius: 1rem;
         font-size: 0.7rem;
         font-weight: 600;
         white-space: nowrap;
-        margin-left: 0.8rem; 
+       
         
         i {
           font-size: 0.875rem;

@@ -1,0 +1,128 @@
+{
+  "sections": [
+    {
+      "id": "match",
+      "title": "Match Format",
+      "icon": "sports_cricket",
+      "points": [
+        {
+          "id": "overs",
+          "title": "Overs",
+          "short": "Matches are played with 6 overs per innings",
+          "details": "Each over consists of 6 legal deliveries. The match duration is limited to approximately 45 minutes per innings to ensure timely completion."
+        },
+        {
+          "id": "players",
+          "title": "Team Size",
+          "short": "Each team must have 4-6 players",
+          "details": "Teams must register a minimum of 4 players and a maximum of 6 players. Substitutions are allowed only in case of injury and must be approved by the umpire."
+        },
+        {
+          "id": "bowling",
+          "title": "Bowling Limits",
+          "short": "No player can bowl more than 2 overs",
+          "details": "To ensure fair play and equal participation, no single bowler may bowl more than 2 overs in a match. At least 3 different bowlers must bowl in each innings."
+        },
+        {
+          "id": "toss",
+          "title": "Match Start",
+          "short": "Toss determines who bats or bowls first",
+          "details": "The toss should take place 5 minutes before the scheduled start. The winning captain must announce their decision immediately. Late arrival may result in forfeiting the toss."
+        }
+      ]
+    },
+    {
+      "id": "scoring",
+      "title": "Scoring System",
+      "icon": "scoreboard",
+      "points": [
+        {
+          "id": "runs",
+          "title": "Run Scoring",
+          "short": "Standard cricket scoring rules apply",
+          "details": "Runs are scored by running between wickets or hitting boundaries. The scorekeeper will maintain a digital and paper record of all runs scored during the match."
+        },
+        {
+          "id": "boundaries",
+          "title": "Boundaries",
+          "short": "4 runs for ground boundary, 6 runs for air boundary",
+          "details": "Boundaries are marked with cones or lines. A ball crossing the boundary on the ground scores 4 runs, while a ball crossing the boundary without touching the ground scores 6 runs."
+        },
+        {
+          "id": "extras",
+          "title": "Extra Runs",
+          "short": "Wide balls & no balls: 1 run + re-bowl",
+          "details": "Wide balls and no balls result in 1 extra run for the batting team and the delivery must be bowled again. No balls also result in a free hit for the next delivery."
+        },
+        {
+          "id": "penalties",
+          "title": "Penalty Runs",
+          "short": "Penalties for rule violations",
+          "details": "5 penalty runs awarded for serious rule violations like ball tampering, obstructing the field intentionally, or inappropriate behavior."
+        }
+      ]
+    },
+    {
+      "id": "dismissals",
+      "title": "Types of Dismissals",
+      "icon": "close",
+      "points": [
+        {
+          "id": "bowled",
+          "title": "Bowled",
+          "short": "Ball hits the stumps",
+          "details": "A batsman is out bowled when the ball delivered by the bowler hits the stumps and at least one bail is dislodged. The batsman is out even if the ball has touched the bat, glove, or body before hitting the stumps."
+        },
+        {
+          "id": "caught",
+          "title": "Caught",
+          "short": "Ball caught before touching the ground",
+          "details": "A batsman is out caught when a fielder catches the ball before it touches the ground after the ball has touched the bat or glove holding the bat. The bowler gets credit for the wicket."
+        },
+        {
+          "id": "runout",
+          "title": "Run Out",
+          "short": "Batsman fails to reach the crease",
+          "details": "A batsman is run out when the ball is returned to either wicket while the batsmen are running between wickets and the bail(s) are removed before the batsman has reached the crease."
+        },
+        {
+          "id": "stumped",
+          "title": "Stumped",
+          "short": "Wicketkeeper breaks stumps when batsman is out of crease",
+          "details": "A batsman is out stumped when the wicketkeeper breaks the stumps with the ball while the batsman is out of the crease and not attempting a run. The batsman must have some part of the bat or body behind the crease to be safe."
+        }
+      ]
+    },
+    {
+      "id": "conduct",
+      "title": "Player Conduct",
+      "icon": "gavel",
+      "points": [
+        {
+          "id": "spirit",
+          "title": "Spirit of the Game",
+          "short": "Maintain the spirit of cricket",
+          "details": "All players must play within the spirit of cricket, showing respect to opponents, umpires, and teammates. Fair play is expected at all times regardless of the match situation."
+        },
+        {
+          "id": "decisions",
+          "title": "Umpire Decision",
+          "short": "Umpire's decision is final",
+          "details": "The umpire's decision is final and must be respected by all players. Arguing or showing dissent towards an umpire's decision may result in penalty runs or player suspension."
+        },
+        {
+          "id": "attire",
+          "title": "Cricket Attire",
+          "short": "Wear appropriate cricket attire",
+          "details": "Players must wear proper cricket attire including cricket shoes with spikes (optional), white or team-colored clothing, and any protective equipment needed for their role."
+        },
+        {
+          "id": "delays",
+          "title": "Time Management",
+          "short": "Delays result in penalty runs",
+          "details": "Teams causing unnecessary delays will be penalized. Five runs will be awarded to the opposing team for every 3 minutes of delay beyond the allotted time between overs and innings."
+        }
+      ]
+    }
+  ]
+}
