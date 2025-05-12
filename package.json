@@ -16,6 +16,7 @@
     "react-dom": "^19.0.0",
     "react-router-dom": "^7.5.3",
     "recharts": "^2.15.3",
+    "remix": "^2.16.6",
     "sass": "^1.87.0"
   },
   "devDependencies": {
