@@ -3,7 +3,7 @@
   publish = "dist/client"    # Path to the directory to be deployed
 
 [build.environment]
-  NODE_VERSION = "16"        # Optional: specify the Node.js version you want to use
+  NODE_VERSION = "22.15.0"       # Optional: specify the Node.js version you want to use
 
 # Optional: Specify install settings
 [build.processing]
