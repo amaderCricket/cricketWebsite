@@ -45,25 +45,25 @@ const columnToIndex = (column: string): number => {
 };
 
 const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
-  if (!matchData || !Array.isArray(matchData) || matchData.length === 0) {
-    console.error('Invalid match data format:', matchData);
-    return null;
-  }
-  
-  // Debugging - log the structure of the first few rows
-  console.log('Match data structure sample:', matchData.slice(0, 3));
+  // console.log('Parsing match data:', matchData);
+  // console.log('Total rows:', matchData.length);
   
   // Check if first row looks like a header
   const firstRow = matchData[0];
   let dataRows: unknown[][];
   
   // Check if the first row is a header by looking at the data types
+  // If the first row has dates/numbers in expected positions, it's data, not a header
   if (firstRow && typeof firstRow[0] === 'string' && firstRow[0].includes('T')) {
+    
     dataRows = matchData;
   } else {
     // First row is likely a header, skip it
+    
     dataRows = matchData.slice(1);
   }
+  
+  // console.log('Data rows to process:', dataRows.length);
   
   if (dataRows.length === 0) {
     console.error('No data rows found');
@@ -84,7 +84,7 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
   const teams: TeamResult[] = [];
   const players: PlayerTeamInfo[] = [];
   const playerMap = new Map<string, { teams: Set<string>; isManOfMatch: boolean }>();
-
+  
   // Process each row
   dataRows.forEach((row: unknown[]) => {
     const rowData = row as (string | number | unknown)[];
@@ -110,26 +110,28 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
     // Track players and their teams
     if (playerName && !playerMap.has(playerName)) {
       playerMap.set(playerName, {
-        teams: new Set(),
+        teams: new Set<string>(),
         isManOfMatch: false
       });
     }
     
     if (playerName) {
-      const playerData = playerMap.get(playerName)!;
+      const playerData = playerMap.get(playerName);
       
-      // Check if this player is Man of the Match
-      if (momValue === 'yes' || momValue === 'y' || momValue === '1') {
-        playerData.isManOfMatch = true;
-      }
-      
-      // Assign player to team
-      if (teamName === 'Both Teams') {
-        teams.forEach(team => {
-          playerData.teams.add(team.teamName);
-        });
-      } else if (teamName) {
-        playerData.teams.add(teamName);
+      if (playerData) {
+        // Check if this player is Man of the Match
+        if (momValue === 'yes' || momValue === 'y' || momValue === '1') {
+          playerData.isManOfMatch = true;
+        }
+        
+        // Assign player to team
+        if (teamName === 'Both Teams') {
+          teams.forEach(team => {
+            playerData.teams.add(team.teamName);
+          });
+        } else if (teamName) {
+          playerData.teams.add(teamName);
+        }
       }
     }
   });
@@ -143,20 +145,11 @@ const parseMatchData = (matchData: unknown[][]): LastMatchInfo | null => {
     });
   });
   
-  const result = {
+  return {
     date,
     teams,
     players
   };
-  
-  // Validate resulting data structure
-  if (teams.length === 0) {
-    console.error('No teams found in parsed data');
-    return null;
-  }
-  
-  console.log('Successfully parsed match data:', result);
-  return result;
 };
 
 export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatchInfo | null> => {
@@ -165,7 +158,7 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
     if (!forceRefresh) {
       const cachedData = localStorage.getItem(CACHE_KEY);
       if (cachedData && !cacheService.isCacheExpired(CACHE_KEY)) {
-        console.log('Using cached match data');
+        // console.log('Using cached match data');
         
         // Check for updates in background
         setTimeout(() => {
@@ -176,7 +169,7 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
       }
     }
     
-    console.log('Fetching fresh match data from API...');
+    // console.log('Fetching fresh match data from API...');
     
     let responseData;
     
@@ -186,82 +179,31 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
         timeout: 10000 // 10 second timeout
       });
       responseData = response.data;
-      console.log('Direct API call succeeded');
     } catch (directError) {
-      console.log("Direct API access failed, trying CORS proxy:", directError);
+      // console.log("Direct API access failed, trying CORS proxy:", directError);
       
       // Try with CORS proxy
       try {
         const proxyUrl = `${CORS_PROXY}${encodeURIComponent(API_CONFIG.baseUrl)}?type=all`;
-        console.log(`Trying proxy: ${proxyUrl}`);
+        // console.log(`Trying proxy: ${proxyUrl}`);
         const response = await axios.get(proxyUrl, { 
-          timeout: 15000, // 15 second timeout
-          headers: {
-            'Accept': 'application/json'
-          }
+          timeout: 15000 // 15 second timeout
         });
         responseData = response.data;
-        console.log("Proxy success:", CORS_PROXY);
+        // console.log("Proxy success:", CORS_PROXY);
       } catch (proxyError) {
         console.error('CORS proxy also failed:', proxyError);
         throw new Error('Both direct and proxy API calls failed');
       }
     }
     
-    // Now process the responseData
-    console.log('API Response:', responseData);
-    
-    if (!responseData) {
-      console.error('Empty response from API');
-      throw new Error('Empty response from API');
-    }
-    
-    // Handle potential XML response or other formats
-    if (typeof responseData === 'string') {
-      try {
-        responseData = JSON.parse(responseData);
-      } catch (e) {
-        console.error('Response is not valid JSON:', e);
-        throw new Error('Response is not valid JSON');
-      }
-    }
-    
-    // Check if the data contains the Match Data
-    if (!responseData['Match Data']) {
+    if (!responseData || !responseData['Match Data']) {
       console.error('No match data found in API response');
-      
-      // Check for other possible property names
-      const possibleKeys = Object.keys(responseData);
-      console.log('Available data keys:', possibleKeys);
-      
-      // Try to find any array that could be match data
-      let matchData = null;
-      for (const key of possibleKeys) {
-        if (Array.isArray(responseData[key]) && responseData[key].length > 0) {
-          console.log(`Found array in key ${key}, trying to use it`);
-          matchData = responseData[key];
-          break;
-        }
-      }
-      
-      if (!matchData) {
-        throw new Error('Could not find match data in response');
-      }
-      
-      const parsedData = parseMatchData(matchData);
-      
-      if (parsedData) {
-        // Cache the result
-        localStorage.setItem(CACHE_KEY, JSON.stringify(parsedData));
-        localStorage.setItem(`${CACHE_KEY}_timestamp`, Date.now().toString());
-        return parsedData;
-      } else {
-        throw new Error('Failed to parse match data');
-      }
+      return null;
     }
     
-    // Process the match data
     const matchData = responseData['Match Data'];
+    
     const parsedData = parseMatchData(matchData);
     
     if (parsedData) {
@@ -276,10 +218,11 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
       };
       localStorage.setItem(CACHE_METADATA_KEY, JSON.stringify(metadata));
       
-      console.log('Data cached successfully');
+      // console.log('Data cached successfully');
       return parsedData;
     } else {
-      throw new Error('Failed to parse match data');
+      // console.error('Failed to parse match data');
+      return null;
     }
     
   } catch (error) {
@@ -288,11 +231,11 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
     // Try to use cached data as fallback
     const cachedData = localStorage.getItem(CACHE_KEY);
     if (cachedData) {
-      console.log('Using cached data as fallback after error');
+      // console.log('Using cached data as fallback after error');
       return JSON.parse(cachedData) as LastMatchInfo;
     }
     
-    return null; // Return null instead of fallback data
+    return null;
   }
 };
 
@@ -302,7 +245,7 @@ const checkForUpdatesInBackground = async (): Promise<void> => {
     // Check if data needs update
     const needsUpdate = await cacheService.checkForUpdates();
     if (needsUpdate) {
-      console.log('Match data needs update, fetching in background...');
+      // console.log('Match data needs update, fetching in background...');
       await fetchLastMatchData(true);
     }
   } catch (error) {
@@ -312,15 +255,15 @@ const checkForUpdatesInBackground = async (): Promise<void> => {
 
 // Prefetch match data (call this when app loads)
 export const prefetchMatchData = async (): Promise<void> => {
-  const cachedData = localStorage.getItem(CACHE_KEY);
-  if (!cachedData || cacheService.isCacheExpired(CACHE_KEY)) {
-    console.log('Prefetching match data...');
-    try {
+  try {
+    const cachedData = localStorage.getItem(CACHE_KEY);
+    if (!cachedData || cacheService.isCacheExpired(CACHE_KEY)) {
+      // console.log('Prefetching match data...');
       await fetchLastMatchData(true);
-    } catch (error) {
-      console.error('Error prefetching match data:', error);
+    } else {
+      // console.log('Match data already cached, skipping prefetch');
     }
-  } else {
-    console.log('Match data already cached, skipping prefetch');
+  } catch (error) {
+    console.error('Error prefetching match data:', error);
   }
 };
