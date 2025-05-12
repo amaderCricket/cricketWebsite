@@ -8,29 +8,3 @@
   to = "/index.html"
   status = 200
 
-# Cache settings for index.html
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
-    Access-Control-Allow-Origin = "*"
-
-# Cache settings for static assets (JS/CSS)
-[[headers]]
-  for = "/*.js"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-    Access-Control-Allow-Origin = "*"
-
-[[headers]]
-  for = "/*.css"
-  [headers.values]
-    Cache-Control = "public, max-age=86400"
-    Access-Control-Allow-Origin = "*"
-
-# Cache settings for images
-[[headers]]
-  for = "/assets/*(jpg|jpeg|png|gif|webp|svg|ico)"
-  [headers.values]
-    Cache-Control = "public, max-age=604800"
-    Access-Control-Allow-Origin = "*"
