@@ -1,0 +1,10 @@
+[build]
+  command = "npm run build"  # Command to run your build (adjust if needed)
+  publish = "dist/client"    # Path to the directory to be deployed
+
+[build.environment]
+  NODE_VERSION = "16"        # Optional: specify the Node.js version you want to use
+
+# Optional: Specify install settings
+[build.processing]
+  install = true
