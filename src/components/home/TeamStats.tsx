@@ -30,7 +30,7 @@ function TeamStats() {
     async function fetchData() {
       try {
         setLoading(true);
-        console.log("Fetching player statistics...");
+        // console.log("Fetching player statistics...");
         
         // Get player data for all-time stats
         const playersData = await cacheService.fetchPlayers();
@@ -39,7 +39,7 @@ function TeamStats() {
         if (playersData && playersData.stats && Array.isArray(playersData.stats)) {
           const allTimeStats = calculateAllTimeStats(playersData.stats);
           setAllTimeStats(allTimeStats);
-          console.log("All-time stats calculated:", allTimeStats);
+          // console.log("All-time stats calculated:", allTimeStats);
         }
         
         setLoading(false);
@@ -71,7 +71,7 @@ function TeamStats() {
     try {
       // Get headers to find column indices
       const headers = playersData[0];
-      console.log("Stats headers:", headers);
+      // console.log("Stats headers:", headers);
       
       // Find the indices of the required columns
       const matchesIndex = findColumnIndex(headers, ['Matches', 'matches']);

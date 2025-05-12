@@ -1,7 +1,7 @@
 // src/components/home/LastMatchCard.tsx
 import { useEffect, useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
+import { fetchLastMatchData, prefetchMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
 import Preloader from '../common/PreLoader';
 
@@ -68,15 +68,17 @@ function LastMatchCard() {
       winnerPlayers: winnerPlayersList,
       loserPlayers: loserPlayersList
     };
-
-
   }, [matchData, playerImages]);
   
   // Load match data
   useEffect(() => {
+    // Force refresh data when component mounts
     const loadMatchData = async () => {
       try {
-        const data = await fetchLastMatchData();
+        setLoading(true);
+        // Always force a refresh when component mounts
+        await prefetchMatchData();
+        const data = await fetchLastMatchData(true);
         
         setMatchData(data);
       } catch (err) {
@@ -88,6 +90,22 @@ function LastMatchCard() {
     };
     
     loadMatchData();
+    
+    // Set up a periodic refresh every 30 minutes
+    const refreshInterval = setInterval(() => {
+      console.log('Refreshing match data (periodic refresh)...');
+      fetchLastMatchData(true)
+        .then(data => {
+          if (data) {
+            setMatchData(data);
+          }
+        })
+        .catch(err => console.error('Error in periodic match data refresh:', err));
+    }, 30 * 60 * 1000); // 30 minutes
+    
+    return () => {
+      clearInterval(refreshInterval);
+    };
   }, []);
   
   // Load player images separately with lower priority
@@ -118,6 +136,21 @@ function LastMatchCard() {
     }, 100);
   }, [matchData]);
   
+  // Manual refresh function for refresh button
+  const handleRefresh = async () => {
+    try {
+      setLoading(true);
+      const data = await fetchLastMatchData(true);
+      setMatchData(data);
+      setError(null);
+    } catch (err) {
+      console.error('Error refreshing match data:', err);
+      setError('Failed to refresh match data');
+    } finally {
+      setLoading(false);
+    }
+  };
+  
   // Show loading state
   if (loading) {
     return (
@@ -136,6 +169,21 @@ function LastMatchCard() {
         <h2 className="section-title">Last Match</h2>
         <div className="last-match-error">
           <p>{error || 'No match data available'}</p>
+          <button 
+            onClick={handleRefresh}
+            className="refresh-button"
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: 'var(--primaryColor)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer'
+            }}
+          >
+            Try Again
+          </button>
         </div>
       </section>
     );
@@ -150,6 +198,21 @@ function LastMatchCard() {
         <h2 className="section-title">Last Match</h2>
         <div className="last-match-error">
           <p>Invalid match data</p>
+          <button 
+            onClick={handleRefresh}
+            className="refresh-button"
+            style={{
+              marginTop: '1rem',
+              padding: '0.5rem 1rem',
+              backgroundColor: 'var(--primaryColor)',
+              color: 'white',
+              border: 'none',
+              borderRadius: '0.25rem',
+              cursor: 'pointer'
+            }}
+          >
+            Refresh Data
+          </button>
         </div>
       </section>
     );
@@ -175,7 +238,28 @@ function LastMatchCard() {
   
   return (
     <section className="last-match-section">
-      <h2 className="section-title">Last Match</h2>
+      <h2 className="section-title">
+        Last Match
+        <button 
+          onClick={handleRefresh}
+          className="refresh-icon"
+          title="Refresh match data"
+          style={{
+            background: 'none',
+            border: 'none',
+            cursor: 'pointer',
+            marginLeft: '0.5rem',
+            padding: '0.25rem',
+            color: 'var(--primaryColor)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontSize: '1rem'
+          }}
+        >
+          <i className="material-icons" style={{ fontSize: '1.25rem' }}>refresh</i>
+        </button>
+      </h2>
       
       <div className="last-match-card">
         {/* Match date */}

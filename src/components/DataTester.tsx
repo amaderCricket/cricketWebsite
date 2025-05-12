@@ -29,7 +29,7 @@ function DataTester() {
       // Get the latest metadata from server
       const response = await axios.get(`${API_URL}?type=checkUpdate`);
       const serverMetadata = response.data;
-      console.log('Server metadata:', serverMetadata);
+      // console.log('Server metadata:', serverMetadata);
       
       // Get our stored metadata
       const storedMetadataJson = localStorage.getItem(METADATA_KEY);
@@ -47,7 +47,7 @@ function DataTester() {
       }
       
       const storedMetadata = JSON.parse(storedMetadataJson);
-      console.log('Stored metadata:', storedMetadata);
+      // console.log('Stored metadata:', storedMetadata);
       
       // Check if server data is newer
       const needsUpdate = serverMetadata.lastUpdated > storedMetadata.lastUpdated || 
@@ -94,7 +94,7 @@ function DataTester() {
       
       if (cachedData && !needsUpdate) {
         setStatusMessage('Using cached summary data.');
-        console.log("Using cached summary data:", JSON.parse(cachedData));
+        // console.log("Using cached summary data:", JSON.parse(cachedData));
         return JSON.parse(cachedData);
       }
       
@@ -102,7 +102,7 @@ function DataTester() {
       setStatusMessage('Fetching fresh summary data from server...');
       const response = await axios.get(`${API_URL}?type=summary`);
       const data = response.data;
-      console.log("Fresh summary data:", data);
+      // console.log("Fresh summary data:", data);
       
       // Cache the data
       localStorage.setItem(SUMMARY_KEY, JSON.stringify(data));
@@ -139,7 +139,7 @@ function DataTester() {
       if (cachedData && !needsUpdate) {
         setStatusMessage('Using cached players data.');
         const playersData = JSON.parse(cachedData);
-        console.log("Using cached players data:", playersData);
+        // console.log("Using cached players data:", playersData);
         extractPlayerNames(playersData);
         return playersData;
       }
@@ -148,7 +148,7 @@ function DataTester() {
       setStatusMessage('Fetching fresh players data from server...');
       const response = await axios.get(`${API_URL}?type=players`);
       const data = response.data;
-      console.log("Fresh players data:", data);
+      // console.log("Fresh players data:", data);
       
       // Cache the data
       localStorage.setItem(PLAYERS_KEY, JSON.stringify(data));
@@ -182,11 +182,11 @@ function DataTester() {
   // Helper function to extract player names from data
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function extractPlayerNames(data: any) {
-    console.log("Extracting player names from:", data);
+    // console.log("Extracting player names from:", data);
     
     if (data && data.stats && Array.isArray(data.stats) && data.stats.length > 1) {
       // Log the first few rows to see the structure
-      console.log("First few rows of stats:", data.stats.slice(0, 5));
+      // ("First few rows of stats:", data.stats.slice(0, 5));
       
       // Assuming first column has player names and first row is header
       const playerNames = data.stats.slice(1)
@@ -194,7 +194,7 @@ function DataTester() {
         .map((row: any) => row[0])
         .filter((name: string) => name && typeof name === 'string');
       
-      console.log("Extracted player names:", playerNames);
+      // console.log("Extracted player names:", playerNames);
       
       if (playerNames.length > 0) {
         setPlayerOptions(playerNames);
@@ -227,7 +227,7 @@ function DataTester() {
       
       if (cachedData && !needsUpdate) {
         setStatusMessage(`Using cached data for player ${playerName}.`);
-        console.log(`Using cached data for player ${playerName}:`, JSON.parse(cachedData));
+        // console.log(`Using cached data for player ${playerName}:`, JSON.parse(cachedData));
         return JSON.parse(cachedData);
       }
       
@@ -235,7 +235,7 @@ function DataTester() {
       setStatusMessage(`Fetching fresh data for player ${playerName}...`);
       const response = await axios.get(`${API_URL}?type=playerDetails&name=${encodeURIComponent(playerName)}`);
       const data = response.data;
-      console.log(`Fresh data for player ${playerName}:`, data);
+      // console.log(`Fresh data for player ${playerName}:`, data);
       
       // Cache the data
       localStorage.setItem(cacheKey, JSON.stringify(data));
@@ -301,7 +301,7 @@ function DataTester() {
     
     const infoMessage = `Cache Info: Total Size: ${sizeInKB} KB, Player Caches: ${playerCacheCount}`;
     setStatusMessage(infoMessage);
-    console.log(infoMessage);
+    // console.log(infoMessage);
     
     return infoMessage;
   }

@@ -43,7 +43,7 @@ function Players() {
    useEffect(() => {
     // Subscribe to cache updates
     const removeListener = cacheService.onUpdate(() => {
-      console.log("Players: Cache updated, refreshing data");
+      // console.log("Players: Cache updated, refreshing data");
       refreshData(); // Refresh the players data when an update occurs
     });
     

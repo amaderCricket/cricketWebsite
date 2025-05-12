@@ -41,11 +41,11 @@ export const useCacheInitializer = () => {
   useEffect(() => {
     if (!isInitialized) return;
     
-    console.log("Setting up cache update listener");
+    // console.log("Setting up cache update listener");
     
     // Setup listener for cache updates
     const removeListener = cacheService.onUpdate(() => {
-      console.log("Cache update detected!");
+      // console.log("Cache update detected!");
       setIsUpdating(true);
       setLastUpdateTime(new Date());
       
@@ -57,7 +57,7 @@ export const useCacheInitializer = () => {
     
     // Cleanup listener on unmount
     return () => {
-      console.log("Removing cache update listener");
+      // console.log("Removing cache update listener");
       removeListener();
     };
   }, [isInitialized]);

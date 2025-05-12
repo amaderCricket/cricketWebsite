@@ -16,11 +16,11 @@ function CricketStatsCalculator() {
     async function calculateStats() {
       try {
         setIsLoading(true);
-        console.log("-------------- CALCULATING CRICKET STATISTICS --------------");
+        // console.log("-------------- CALCULATING CRICKET STATISTICS --------------");
         
         // Fetch players data
         const playersData = await cacheService.fetchPlayers();
-        console.log("Fetched players data for stats calculation:", playersData);
+        // console.log("Fetched players data for stats calculation:", playersData);
         
         if (!playersData.stats || !Array.isArray(playersData.stats) || playersData.stats.length < 2) {
           console.error("Invalid player stats data format");
@@ -30,7 +30,7 @@ function CricketStatsCalculator() {
         
         // Get headers to find column indices
         const headers = playersData.stats[0];
-        console.log("Stats headers:", headers);
+        // console.log("Stats headers:", headers);
         
         // Find the indices of the required columns
         const matchesIndex = findColumnIndex(headers, ['Matches', 'matches']);
@@ -39,13 +39,13 @@ function CricketStatsCalculator() {
         const highestScoreIndex = findColumnIndex(headers, ['Highest Score', 'highest score']);
         const playerNameIndex = findColumnIndex(headers, ['Player Name', 'player name', 'name']);
         
-        console.log("Column indices found:", {
-          matches: matchesIndex,
-          runs: runsIndex,
-          ballsBowled: ballsBowledIndex,
-          highestScore: highestScoreIndex,
-          playerName: playerNameIndex
-        });
+        // console.log("Column indices found:", {
+        //   matches: matchesIndex,
+        //   runs: runsIndex,
+        //   ballsBowled: ballsBowledIndex,
+        //   highestScore: highestScoreIndex,
+        //   playerName: playerNameIndex
+        // });
         
         // Extract stats data
         const dataRows = playersData.stats.slice(1); // Skip header row
@@ -111,16 +111,16 @@ function CricketStatsCalculator() {
         
         setCalculatedStats(calculatedStats);
         
-        // Log the calculated stats
-        console.log("-------------- CALCULATED CRICKET STATISTICS --------------");
-        console.log("Total Matches (highest value):", maxMatches);
-        console.log("Total Runs Scored (sum):", totalRuns);
-        console.log("Total Balls Bowled (sum):", totalBallsBowled);
-        console.log("All Time Highest Score:", maxHighScore);
-        if (highScorePlayer) {
-          console.log("Highest Score by:", highScorePlayer);
-        }
-        console.log("----------------------------------------------------------");
+        // // Log the calculated stats
+        // console.log("-------------- CALCULATED CRICKET STATISTICS --------------");
+        // console.log("Total Matches (highest value):", maxMatches);
+        // console.log("Total Runs Scored (sum):", totalRuns);
+        // console.log("Total Balls Bowled (sum):", totalBallsBowled);
+        // console.log("All Time Highest Score:", maxHighScore);
+        // if (highScorePlayer) {
+        //   console.log("Highest Score by:", highScorePlayer);
+        // }
+        // console.log("----------------------------------------------------------");
         
         setIsLoading(false);
       } catch (error) {

@@ -10,21 +10,28 @@ import HallOfFame  from './pages/HallofFame'
 import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
 import { useCacheInitializer } from './hooks/useCacheInitializer'
+import { prefetchMatchData } from './services/matchDataService'
+import { recordAppOpen } from './utils/timeStampMonitor'
 
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
 import GoToTop from './components/common/GoToTop'
 import Preloader from './components/common/PreLoader'
-import AutoDismissToast from './components/common/AutoDismissToast'
+
 import './App.scss'
 
 function App() {
-  const { isInitialized, isUpdating } = useCacheInitializer();
+  const { isInitialized } = useCacheInitializer();
   
   useEffect(() => {
     themeService.initializeTheme();
     fontService.initializeFonts();
+     recordAppOpen();
+     prefetchMatchData().catch(err => {
+      console.error('Error prefetching match data:', err);
+    });
   }, []);
+  
 
   return (
     <BrowserRouter>
@@ -48,11 +55,7 @@ function App() {
         <GoToTop />
         
         {/* Auto-dismissing toast that uses CSS animations */}
-        <AutoDismissToast 
-          message="Data has been updated!" 
-          visible={isUpdating} 
-          duration={2000} // 2 seconds
-        />
+ 
       </div>
     </BrowserRouter>
   )

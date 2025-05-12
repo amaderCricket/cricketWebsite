@@ -16,7 +16,7 @@ function Home() {
     // Listen for cache updates
     useEffect(() => {
       const removeListener = cacheService.onUpdate(() => {
-        console.log("Home: Cache update detected, refreshing data");
+        // console.log("Home: Cache update detected, refreshing data");
         refreshData();
       });
       

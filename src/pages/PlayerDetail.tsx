@@ -114,7 +114,7 @@ function PlayerDetail() {
   // Only set up listener if we have a player ID and loaded player data
     if (id && player) {
       const removeListener = cacheService.onUpdate(() => {
-        console.log("PlayerDetail: Cache update detected, refreshing data");
+        // console.log("PlayerDetail: Cache update detected, refreshing data");
         loadPlayerMatches(id, true); // Force refresh with true parameter
       });
       

@@ -72,7 +72,7 @@ function HallOfFame() {
 
     useEffect(() => {
       const removeListener = cacheService.onUpdate(() => {
-      console.log("HallOfFame: Cache update detected, refreshing data");
+      // console.log("HallOfFame: Cache update detected, refreshing data");
       fetchHallOfFameData(true); // Force refresh
   });
       

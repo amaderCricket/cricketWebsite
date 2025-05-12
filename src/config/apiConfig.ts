@@ -35,5 +35,5 @@ export const clearAllCaches = (): void => {
     localStorage.removeItem(key);
   });
   
-  console.log('All caches cleared successfully');
+  // console.log('All caches cleared successfully');
 };

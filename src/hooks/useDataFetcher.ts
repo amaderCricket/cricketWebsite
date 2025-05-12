@@ -27,7 +27,7 @@ export const useDataFetcher = (): UseDataFetcherResult => {
       setLoading(true);
       // Use cacheService instead of direct API call
       const result = await cacheService.fetchSummaryData(forceRefresh);
-      console.log('Summary data loaded');
+      // console.log('Summary data loaded');
       setData(result);
       setLoading(false);
     } catch (err) {

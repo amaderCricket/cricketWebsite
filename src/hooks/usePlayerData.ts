@@ -23,7 +23,7 @@ export const usePlayerData = (): UsePlayerDataResult => {
       
       // Get players data from cache or API
       const result = await cacheService.fetchPlayers(forceRefresh);
-      console.log('Players data loaded');
+      // console.log('Players data loaded');
       
       // Safety check for valid data structure
       if (!result || !result.stats || !Array.isArray(result.stats)) {
@@ -32,7 +32,7 @@ export const usePlayerData = (): UsePlayerDataResult => {
       
       // Parse the player data
       const parsedPlayers = parsePlayerData(result.stats);
-      console.log(`Parsed ${parsedPlayers.length} players`);
+      // console.log(`Parsed ${parsedPlayers.length} players`);
       
       setPlayers(parsedPlayers);
       setLoading(false);

@@ -131,7 +131,7 @@ function Leaderboard() {
 
    useEffect(() => {
     const removeListener = cacheService.onUpdate(() => {
-      console.log("Leaderboard: Cache update detected, refreshing data");
+      // console.log("Leaderboard: Cache update detected, refreshing data");
       fetchLeaderboardData(true); // Now we can call this with forceRefresh=true
     });
     
