@@ -4,33 +4,66 @@ import blankImage from '../assets/players/blank_image.png';
 // In-memory cache for images
 const imageCache: Record<string, string> = {};
 
+// Local storage cache keys
+const IMAGE_CACHE_PREFIX = 'player_image_';
+
 export const getPlayerImage = async (player: {
   name: string;
   playerNameForImage: string;
 }): Promise<string> => {
   const cacheKey = player.playerNameForImage;
   
-  // Return from cache if available
+  // Return from memory cache if available (fastest)
   if (imageCache[cacheKey]) {
     return imageCache[cacheKey];
   }
   
+  // Try localStorage cache next (still fast)
+  const localCachedImage = localStorage.getItem(`${IMAGE_CACHE_PREFIX}${cacheKey}`);
+  if (localCachedImage) {
+    // Store in memory cache too
+    imageCache[cacheKey] = localCachedImage;
+    return localCachedImage;
+  }
+  
   try {
-    // Try to dynamically import the JPG
-    const jpgModule = await import(`../assets/players/${player.playerNameForImage}.jpg`).catch(() => null);
+    // Try to dynamically import the JPG with race condition for faster loading
+    const jpgPromise = Promise.race([
+      import(`../assets/players/${player.playerNameForImage}.jpg`).catch(() => null),
+      new Promise(resolve => setTimeout(() => resolve(null), 2000)) // 2s timeout
+    ]);
+    
+    const jpgModule = await jpgPromise;
     
     if (jpgModule) {
-      // Store in cache and return
+      // Store in both caches and return
       imageCache[cacheKey] = jpgModule.default;
+      try {
+        localStorage.setItem(`${IMAGE_CACHE_PREFIX}${cacheKey}`, jpgModule.default);
+      } catch (e) {
+        // Ignore localStorage errors (might be full)
+        console.error('LocalStorage error:', e);
+      }
       return jpgModule.default;
     }
 
-    // If JPG fails, try PNG
-    const pngModule = await import(`../assets/players/${player.playerNameForImage}.png`).catch(() => null);
+    // If JPG fails, try PNG with same race condition
+    const pngPromise = Promise.race([
+      import(`../assets/players/${player.playerNameForImage}.png`).catch(() => null),
+      new Promise(resolve => setTimeout(() => resolve(null), 2000)) // 2s timeout
+    ]);
+    
+    const pngModule = await pngPromise;
     
     if (pngModule) {
-      // Store in cache and return
+      // Store in both caches and return
       imageCache[cacheKey] = pngModule.default;
+      try {
+        localStorage.setItem(`${IMAGE_CACHE_PREFIX}${cacheKey}`, pngModule.default);
+      } catch (e) {
+        // Ignore localStorage errors
+        console.error('LocalStorage error:', e);
+      }
       return pngModule.default;
     }
 
@@ -45,20 +78,35 @@ export const getPlayerImage = async (player: {
   }
 };
 
-// New function to preload images for multiple players
+// Enhanced preload function with prioritization
 export const preloadPlayerImages = async (playerNames: string[]): Promise<void> => {
-  // Limit concurrent requests to avoid overwhelming the browser
-  const BATCH_SIZE = 5;
+  if (!playerNames || playerNames.length === 0) return;
+  
+  // First, immediately load the top few players with higher priority
+  const topPriority = playerNames.slice(0, 3);
+  const normalPriority = playerNames.slice(3);
+  
+  // Process top priority players immediately
+  await Promise.all(
+    topPriority.map(playerName => 
+      getPlayerImage({ 
+        name: playerName, 
+        playerNameForImage: playerName 
+      })
+    )
+  );
+  
+  // Then process the rest in batches
+  const BATCH_SIZE = 4; // Smaller batch size for better performance
   const batches = [];
   
   // Split into batches
-  for (let i = 0; i < playerNames.length; i += BATCH_SIZE) {
-    batches.push(playerNames.slice(i, i + BATCH_SIZE));
+  for (let i = 0; i < normalPriority.length; i += BATCH_SIZE) {
+    batches.push(normalPriority.slice(i, i + BATCH_SIZE));
   }
   
-  // Process each batch sequentially
+  // Process each batch sequentially with small delays between batches
   for (const batch of batches) {
-    // Process images in a batch concurrently
     await Promise.all(
       batch.map(playerName => 
         getPlayerImage({ 
@@ -67,5 +115,10 @@ export const preloadPlayerImages = async (playerNames: string[]): Promise<void> 
         })
       )
     );
+    
+    // Small delay between batches to avoid overwhelming the browser
+    if (batches.length > 1) {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   }
 };

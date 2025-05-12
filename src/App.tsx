@@ -18,18 +18,8 @@ import Footer from './components/common/Footer'
 import GoToTop from './components/common/GoToTop'
 
 import './App.scss'
+import Preloader from './components/common/PreLoader'
 
-// Lightweight loading component
-const LightLoader = () => (
-  <div style={{
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '80vh'
-  }}>
-    {/* Intentionally empty for faster loading */}
-  </div>
-);
 
 function App() {
   const { isInitialized } = useCacheInitializer();
@@ -71,9 +61,9 @@ useEffect(() => {
       console.error('Error preloading player images:', error);
     }
   };
+  preloadTopPlayerImages(); 
   
-  // Start preloading after a short delay to not block initial render
-  setTimeout(preloadTopPlayerImages, 1000);
+  
 }, []);
   
 
@@ -82,8 +72,8 @@ useEffect(() => {
       <div className="app">
         <Header />
         <main>
-          {!isInitialized ? <LightLoader /> : (
-            <Suspense fallback={<LightLoader />}>
+          {!isInitialized ? <Preloader /> : (
+            <Suspense fallback={<Preloader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
                 <Route path="/players" element={<Players />} />

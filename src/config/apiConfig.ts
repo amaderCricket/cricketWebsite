@@ -1,7 +1,9 @@
 // src/config/apiConfig.ts
 export const API_CONFIG = {
   // Your new App Script URL
-  baseUrl: 'https://script.google.com/macros/s/AKfycby8z3pdN5-9FGnYy-27BLLGdxGwCy4Xq4YShWsnjm7Y6pJKs2fF9YHknTZ22kykyZU/exec',
+    baseUrl: 'https://script.google.com/macros/s/AKfycby8z3pdN5-9FGnYy-27BLLGdxGwCy4Xq4YShWsnjm7Y6pJKs2fF9YHknTZ22kykyZU/exec',
+    fallbackUrl: 'https://corsproxy.io/?' + encodeURIComponent('https://script.google.com/macros/s/AKfycby8z3pdN5-9FGnYy-27BLLGdxGwCy4Xq4YShWsnjm7Y6pJKs2fF9YHknTZ22kykyZU/exec'),
+
   
   // Cache keys
   METADATA_KEY: 'cricket_data_metadata',

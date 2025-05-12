@@ -203,7 +203,13 @@ export const fetchLastMatchData = async (forceRefresh = false): Promise<LastMatc
     // console.log('Fetching fresh match data from API...');
     
     const API_URL = API_CONFIG.baseUrl;
-    const response = await axios.get<MatchDataResponse>(`${API_URL}?type=all`);
+    const response = await axios.get<MatchDataResponse>(`${API_URL}?type=all`, {
+                            timeout: 15000, // Increase timeout to 15 seconds
+                            headers: {
+                              'Cache-Control': 'no-cache',
+                              'Pragma': 'no-cache'
+                            }
+                          });
     
     // console.log('API response:', response.data);
     
