@@ -9,17 +9,17 @@ function HeroSection() {
   
   const slides = [
     {
-      imageUrl: 'src/assets/hero/hero_1.jpg',
+      imageUrl: '/assets/hero/hero_1.jpg',
       title: 'Lets Play Cricket',
       subtitle: 'Where Colleagues Become Competitors',
     },
     {
-      imageUrl: 'src/assets/hero/hero_2.jpg',
+      imageUrl: '/assets/hero/hero_2.jpg',
       title: 'Office League',
       subtitle: 'Break The Stamps!',
     },
     {
-      imageUrl: 'src/assets/hero/hero_3.jpg',
+      imageUrl: '/assets/hero/hero_3.jpg',
       title: 'Join the Game',
       subtitle: 'Sign up for the next match',
     }
