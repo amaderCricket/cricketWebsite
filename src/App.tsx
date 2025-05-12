@@ -1,6 +1,6 @@
 // src/App.tsx
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
-import { useEffect } from 'react'
+import { useEffect, Suspense } from 'react'
 import Home from './pages/Home'
 import Players from './pages/Players'
 import PlayerDetail from './pages/PlayerDetail'
@@ -16,9 +16,20 @@ import { prefetchMatchData } from './services/matchDataService'
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
 import GoToTop from './components/common/GoToTop'
-import Preloader from './components/common/PreLoader'
 
 import './App.scss'
+
+// Lightweight loading component
+const LightLoader = () => (
+  <div style={{
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '80vh'
+  }}>
+    {/* Intentionally empty for faster loading */}
+  </div>
+);
 
 function App() {
   const { isInitialized } = useCacheInitializer();
@@ -27,9 +38,12 @@ function App() {
     themeService.initializeTheme();
     fontService.initializeFonts();
 
-     prefetchMatchData().catch(err => {
-      console.error('Error prefetching match data:', err);
-    });
+    // Start prefetch in background without blocking
+    setTimeout(() => {
+      prefetchMatchData().catch(err => {
+        console.error('Error prefetching match data:', err);
+      });
+    }, 2000);
   }, []);
   
 
@@ -38,24 +52,22 @@ function App() {
       <div className="app">
         <Header />
         <main>
-          {!isInitialized && <Preloader />}
-          {isInitialized && (
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/players" element={<Players />} />
-              <Route path="/players/:id" element={<PlayerDetail />} />
-              <Route path="/hall-of-fame" element={<HallOfFame />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
-            </Routes>
+          {!isInitialized ? <LightLoader /> : (
+            <Suspense fallback={<LightLoader />}>
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/players" element={<Players />} />
+                <Route path="/players/:id" element={<PlayerDetail />} />
+                <Route path="/hall-of-fame" element={<HallOfFame />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
+              </Routes>
+            </Suspense>
           )}
         </main>
         <Footer />
         
         {/* Add GoToTop component globally */}
         <GoToTop />
-        
-        {/* Auto-dismissing toast that uses CSS animations */}
- 
       </div>
     </BrowserRouter>
   )

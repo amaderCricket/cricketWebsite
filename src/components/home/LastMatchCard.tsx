@@ -1,9 +1,8 @@
 // src/components/home/LastMatchCard.tsx
 import { useEffect, useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchLastMatchData, prefetchMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
+import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
-import Preloader from '../common/PreLoader';
 
 interface PlayerWithImage extends PlayerTeamInfo {
   imageUrl: string;
@@ -35,8 +34,9 @@ PlayerItem.displayName = 'PlayerItem';
 function LastMatchCard() {
   const [matchData, setMatchData] = useState<LastMatchInfo | null>(null);
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
-  const [loading, setLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false); // Changed to false initially
   const [error, setError] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   
   // Memoize player lists - moved BEFORE any early returns
   const { winnerPlayers, loserPlayers } = useMemo(() => {
@@ -72,36 +72,70 @@ function LastMatchCard() {
   
   // Load match data
   useEffect(() => {
-    // Force refresh data when component mounts
-    const loadMatchData = async () => {
+    // Get cached data immediately (don't set loading state)
+    const loadCachedData = () => {
+      const cachedDataString = localStorage.getItem('cached_last_match');
+      if (cachedDataString) {
+        try {
+          const cachedData = JSON.parse(cachedDataString);
+          setMatchData(cachedData);
+          return true;
+        } catch (e) {
+          console.error('Error parsing cached data:', e);
+          return false;
+        }
+      }
+      return false;
+    };
+    
+    // Try to load cached data first
+    const hasCachedData = loadCachedData();
+    
+    // Then fetch fresh data in background without showing loading state
+    const loadFreshData = async () => {
       try {
-        setLoading(true);
-        // Always force a refresh when component mounts
-        await prefetchMatchData();
+        // Only show loading state if we don't have cached data
+        if (!hasCachedData) {
+          setIsLoading(true);
+        }
+        
         const data = await fetchLastMatchData(true);
         
-        setMatchData(data);
+        if (data) {
+          localStorage.setItem('cached_last_match', JSON.stringify(data));
+          setMatchData(data);
+          setError(null);
+        } else if (!hasCachedData) {
+          // Only show error if we don't have cached data
+          setError('No match data available');
+        }
       } catch (err) {
-        console.error('Error loading match data:', err);
-        setError('Failed to load match data');
+        console.error('Error loading fresh match data:', err);
+        if (!hasCachedData) {
+          // Only show error if we don't have cached data
+          setError('Failed to load match data');
+        }
       } finally {
-        setLoading(false);
+        setIsLoading(false);
       }
     };
     
-    loadMatchData();
+    loadFreshData();
     
-    // Set up a periodic refresh every 30 minutes
+    // Set up interval to periodically check for updates without showing loading state
     const refreshInterval = setInterval(() => {
-      console.log('Refreshing match data (periodic refresh)...');
       fetchLastMatchData(true)
-        .then(data => {
-          if (data) {
-            setMatchData(data);
+        .then(freshData => {
+          if (freshData) {
+            localStorage.setItem('cached_last_match', JSON.stringify(freshData));
+            setMatchData(freshData);
           }
         })
-        .catch(err => console.error('Error in periodic match data refresh:', err));
-    }, 30 * 60 * 1000); // 30 minutes
+        .catch(err => {
+          console.error('Error in periodic refresh:', err);
+          // Don't update UI on background refresh errors
+        });
+    }, 5 * 60 * 1000); // Check every 5 minutes
     
     return () => {
       clearInterval(refreshInterval);
@@ -115,55 +149,98 @@ function LastMatchCard() {
     const loadPlayerImages = async () => {
       const images: Record<string, string> = {};
       
-      // Load images progressively
-      for (const player of matchData.players) {
+      // OPTIMIZATION: Process players in batches
+      for (let i = 0; i < matchData.players.length; i++) {
         try {
-          const imageUrl = await getPlayerImage({
-            name: player.playerName,
-            playerNameForImage: player.playerName
-          });
-          images[player.playerName] = imageUrl;
-          setPlayerImages(prev => ({ ...prev, [player.playerName]: imageUrl }));
+          const player = matchData.players[i];
+          const cachedImageUrl = localStorage.getItem(`player_image_${player.playerName}`);
+          
+          if (cachedImageUrl) {
+            // Use cached image path immediately
+            images[player.playerName] = cachedImageUrl;
+            setPlayerImages(prev => ({ ...prev, [player.playerName]: cachedImageUrl }));
+          } else {
+            // Load image and cache it
+            const imageUrl = await getPlayerImage({
+              name: player.playerName,
+              playerNameForImage: player.playerName
+            });
+            
+            images[player.playerName] = imageUrl;
+            setPlayerImages(prev => ({ ...prev, [player.playerName]: imageUrl }));
+            localStorage.setItem(`player_image_${player.playerName}`, imageUrl);
+          }
+          
+          // Add slight delay between player image loads to prevent freezing
+          if (i % 2 === 0) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+          }
         } catch (error) {
-          console.error(`Error loading image for ${player.playerName}:`, error);
+          console.error(`Error loading image:`, error);
         }
       }
     };
     
     // Start loading images after a short delay
-    setTimeout(() => {
+    const timer = setTimeout(() => {
       loadPlayerImages();
-    }, 100);
+    }, 200);
+    
+    return () => clearTimeout(timer);
   }, [matchData]);
   
   // Manual refresh function for refresh button
   const handleRefresh = async () => {
     try {
-      setLoading(true);
+      setIsRefreshing(true); // Show small indicator only for manual refresh
       const data = await fetchLastMatchData(true);
-      setMatchData(data);
-      setError(null);
+      
+      if (data) {
+        localStorage.setItem('cached_last_match', JSON.stringify(data));
+        setMatchData(data);
+        setError(null);
+      } else {
+        setError('No match data available');
+      }
     } catch (err) {
       console.error('Error refreshing match data:', err);
       setError('Failed to refresh match data');
     } finally {
-      setLoading(false);
+      setIsRefreshing(false);
     }
   };
   
-  // Show loading state
-  if (loading) {
-    return (
-      <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
-        <div className="last-match-loading">
-          <Preloader/>
-        </div>
-      </section>
-    );
-  }
+  // Format date
+  const formatDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) {
+        return dateString;
+      }
+      return date.toLocaleDateString('en-US', { 
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+      });
+    } catch {
+      return dateString;
+    }
+  };
+
+  // Calculate run difference
+  const calculateRunDifference = (winnerScore: string, loserScore: string): number => {
+    try {
+      const winnerRuns = parseInt(winnerScore.split('/')[0]);
+      const loserRuns = parseInt(loserScore.split('/')[0]);
+      return winnerRuns - loserRuns;
+    } catch {
+      return 0;
+    }
+  };
   
-  if (error || !matchData) {
+  // If we have an error and no data, show error state
+  if ((error && !matchData) || (!matchData && !isLoading)) {
     return (
       <section className="last-match-section">
         <h2 className="section-title">Last Match</h2>
@@ -182,15 +259,28 @@ function LastMatchCard() {
               cursor: 'pointer'
             }}
           >
-            Try Again
+            {isRefreshing ? 'Refreshing...' : 'Try Again'}
           </button>
         </div>
       </section>
     );
   }
   
-  const winner = matchData.teams.find(team => team.result === 'Won');
-  const loser = matchData.teams.find(team => team.result === 'Lost');
+  // No data yet, but we're loading - show minimal UI
+  if (!matchData && isLoading) {
+    return (
+      <section className="last-match-section">
+        <h2 className="section-title">Last Match</h2>
+        <div className="last-match-card" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'var(--textSecondary)', fontStyle: 'italic' }}>Loading match information...</p>
+        </div>
+      </section>
+    );
+  }
+  
+  // We have data, render normally
+  const winner = matchData?.teams.find(team => team.result === 'Won');
+  const loser = matchData?.teams.find(team => team.result === 'Lost');
   
   if (!winner || !loser) {
     return (
@@ -211,30 +301,12 @@ function LastMatchCard() {
               cursor: 'pointer'
             }}
           >
-            Refresh Data
+            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
           </button>
         </div>
       </section>
     );
   }
-  
-  // Format date
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
   
   return (
     <section className="last-match-section">
@@ -257,7 +329,12 @@ function LastMatchCard() {
             fontSize: '1rem'
           }}
         >
-          <i className="material-icons" style={{ fontSize: '1.25rem' }}>refresh</i>
+          <i className="material-icons" style={{ 
+            fontSize: '1.25rem', 
+            animation: isRefreshing ? 'spin 1s linear infinite' : 'none' 
+          }}>
+            {isRefreshing ? 'sync' : 'refresh'}
+          </i>
         </button>
       </h2>
       
@@ -265,7 +342,7 @@ function LastMatchCard() {
         {/* Match date */}
         <div className="match-date-header">
           <span className="date-label">Played on</span>
-          <span className="date-value">{formatDate(matchData.date)}</span>
+          <span className="date-value">{matchData ? formatDate(matchData.date) : 'N/A'}</span>
         </div>
         
         {/* Teams container */}
@@ -331,19 +408,15 @@ function LastMatchCard() {
           </p>
         </div>
       </div>
+      
+      <style >{`
+        @keyframes spin {
+          0% { transform: rotate(0deg); }
+          100% { transform: rotate(360deg); }
+        }
+      `}</style>
     </section>
   );
-}
-
-// Helper function to calculate run difference
-function calculateRunDifference(winnerScore: string, loserScore: string): number {
-  try {
-    const winnerRuns = parseInt(winnerScore.split('/')[0]);
-    const loserRuns = parseInt(loserScore.split('/')[0]);
-    return winnerRuns - loserRuns;
-  } catch {
-    return 0;
-  }
 }
 
 export default LastMatchCard;

@@ -19,11 +19,47 @@ export const usePlayerData = (): UsePlayerDataResult => {
   // Create a memoized fetchPlayerData function to avoid recreating it on every render
   const fetchPlayerData = useCallback(async (forceRefresh = false): Promise<void> => {
     try {
+      // Check for cached player data first
+      const cachedPlayersString = localStorage.getItem('cached_players_data');
+      if (cachedPlayersString && !forceRefresh) {
+        try {
+          const cachedPlayers = JSON.parse(cachedPlayersString);
+          if (Array.isArray(cachedPlayers) && cachedPlayers.length > 0) {
+            // Use cached data immediately
+            setPlayers(cachedPlayers);
+            setLoading(false);
+            
+            // Then fetch fresh data in background without loading state
+            cacheService.fetchPlayers(true)
+              .then(result => {
+                if (!result || !result.stats || !Array.isArray(result.stats)) {
+                  return; // Invalid data, keep using cached
+                }
+                // Parse and update if different
+                const parsedPlayers = parsePlayerData(result.stats);
+                if (JSON.stringify(parsedPlayers) !== cachedPlayersString) {
+                  localStorage.setItem('cached_players_data', JSON.stringify(parsedPlayers));
+                  setPlayers(parsedPlayers);
+                }
+              })
+              .catch(err => {
+                console.error('Background refresh error:', err);
+                // No UI updates on background errors
+              });
+              
+            return; // Exit early, we have data
+          }
+        } catch (e) {
+          console.error('Error parsing cached players:', e);
+          // Continue with normal loading
+        }
+      }
+      
+      // Normal flow - show loading state
       setLoading(true);
       
       // Get players data from cache or API
       const result = await cacheService.fetchPlayers(forceRefresh);
-      // console.log('Players data loaded');
       
       // Safety check for valid data structure
       if (!result || !result.stats || !Array.isArray(result.stats)) {
@@ -32,19 +68,13 @@ export const usePlayerData = (): UsePlayerDataResult => {
       
       // Parse the player data
       const parsedPlayers = parsePlayerData(result.stats);
-      // console.log(`Parsed ${parsedPlayers.length} players`);
+      
+      // Cache the data for future use
+      localStorage.setItem('cached_players_data', JSON.stringify(parsedPlayers));
       
       setPlayers(parsedPlayers);
       setLoading(false);
       
-      // Prefetch only if we have players and this isn't a refresh
-      if (parsedPlayers.length > 0 && !forceRefresh) {
-        // Start background prefetching of player details for top players only
-        const topPlayers = parsedPlayers.slice(0, 5).map(player => player.name);
-        setTimeout(() => {
-          cacheService.prefetchAllPlayerDetails(topPlayers);
-        }, 2000); // Delay to allow page to render first
-      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err : new Error('An unknown error occurred');
       setError(errorMessage);
