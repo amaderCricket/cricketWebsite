@@ -1,0 +1,32 @@
+// src/styles/components/_cards.scss
+@use '../variables' as *;
+
+.card {
+  background-color: $white;
+  border-radius: $border-radius-lg;
+  box-shadow: $box-shadow;
+  overflow: hidden;
+  
+  &-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid $border-color;
+    background-color: $gray-100;
+    
+    h2, h3, h4 {
+      margin: 0;
+    }
+  }
+  
+  &-body {
+    padding: 1.5rem;
+  }
+  
+  &-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid $border-color;
+    background-color: $gray-100;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}

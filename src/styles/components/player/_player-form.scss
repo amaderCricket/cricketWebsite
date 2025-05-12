@@ -1,0 +1,84 @@
+// src/styles/components/player/_player-form.scss
+@use '../../variables' as *;
+
+.player-form {
+  background: var(--surfaceColor);
+  padding: 1.5rem;
+  border-radius: 1rem;
+  margin: 2rem 0;
+  
+  h3 {
+    font-size: 1.25rem;
+    color: var(--textPrimary);
+    margin-bottom: 1rem;
+    text-align: center;
+  }
+  
+  .form-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .form-indicator {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--backgroundColor);
+    border: 2px solid var(--borderColor);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    
+    &:hover {
+      transform: scale(1.1);
+    }
+    
+    &.good {
+      border-color: $success-color;
+      
+      .indicator-dot {
+        background: $success-color;
+      }
+    }
+    
+    &.loss {
+      opacity: 0.7;
+    }
+    
+    .indicator-dot {
+      position: absolute;
+      top: -5px;
+      right: -5px;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--textSecondary);
+      
+      &.win {
+        background: $success-color;
+      }
+    }
+    
+    .indicator-info {
+      text-align: center;
+      font-size: 0.75rem;
+      
+      .runs {
+        display: block;
+        font-weight: bold;
+        color: var(--primaryColor);
+      }
+      
+      .wickets {
+        display: block;
+        color: var(--textSecondary);
+      }
+    }
+  }
+}

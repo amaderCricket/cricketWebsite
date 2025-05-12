@@ -1,0 +1,92 @@
+// src/styles/components/home/_team-stats.scss
+.team-stats {
+  margin: 4rem 0;
+  padding: 1rem;
+
+
+  h2 {
+    font-size: 2rem;
+    font-family: var(--fontTitle);
+    letter-spacing: 0.16rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-align: center;
+    color: var(--textPrimary);
+    [data-theme="dark"] & {
+      color: var(--accentColor);
+    }
+  }
+  
+  h3 {
+    font-size: 1.5rem;
+    font-weight: bold;
+    margin-bottom: 1rem;
+    color: var(--textPrimary);
+    text-align: center;
+  }
+  
+  .season-stats {
+    background: var(--surfaceColor);
+    border-radius: 16px;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(20px);
+   
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    transition: background-color 0.3s ease, box-shadow 0.3s ease;
+    
+    // Adjust shadow for dark theme
+    [data-theme="dark"] & {
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(1, 1fr);
+      gap: 1rem;
+      
+      @media (min-width: 576px) {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      
+      @media (min-width: 992px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+    
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 1rem;
+      text-align: center;
+      border-radius: 0.25rem;
+      background-color: var(--backgroundColor);
+      transition: background-color 0.3s ease, border-color 0.3s ease;
+      
+      .stat-label {
+        font-family: var(--fontMono);
+        font-size: 0.875rem;
+        color: var(--textPrimary);
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+      }
+      
+      .stat-value {
+            font-size: 2.5rem;
+            font-family: var(--fontTitle);
+            letter-spacing: 0.16rem;
+            font-weight: bold;
+            color: var(--primaryColor);
+            [data-theme="dark"] & {
+              color: var(--accentColor);
+        }
+      }
+    }
+  }
+  
+  
+}

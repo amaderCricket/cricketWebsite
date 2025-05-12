@@ -1,0 +1,19 @@
+// src/index.scss
+@use './styles/reset';
+
+// Define basic variables
+$font-stack: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+$text-color: #333;
+$bg-color: #f8f9fa;
+
+:root {
+  font-family: $font-stack;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+body {
+  margin: 0;
+  background-color: $bg-color;
+  color: $text-color;
+}

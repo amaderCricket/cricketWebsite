@@ -1,0 +1,84 @@
+// src/styles/components/common/_footer.scss
+.footer {
+    background-color: var(--footerColor);
+    color: rgb(187, 187, 187);
+    padding: 2rem 0;
+    font-size: 0.86rem;
+    font-family: var(--fontMono);
+  
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 1rem;
+    }
+  
+    .footer-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      
+      @media (min-width: 768px) {
+        grid-template-columns: repeat(4, 1fr);
+      }
+    }
+  
+    .footer-col {
+      h3 {
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        font-weight: bold;
+      }
+  
+      ul {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+  
+        li {
+          margin-bottom: 0.5rem;
+  
+          a {
+            color: #adb5bd;
+            text-decoration: none;
+            transition: color 0.3s;
+  
+            &:hover {
+              color: white;
+            }
+          }
+        }
+      }
+  
+      address {
+        font-style: normal;
+        color: #adb5bd;
+  
+        p {
+          margin-bottom: 0.5rem;
+        }
+      }
+  
+      .social-links {
+        display: flex;
+        gap: 1rem;
+  
+        a {
+          color: #adb5bd;
+          text-decoration: none;
+          transition: color 0.3s;
+  
+          &:hover {
+            color: white;
+          }
+        }
+      }
+    }
+  
+    .copyright {
+      margin-top: 2rem;
+      padding-top: 1rem;
+      border-top: 1px solid #495057;
+      text-align: center;
+      color: #adb5bd;
+    }
+  }

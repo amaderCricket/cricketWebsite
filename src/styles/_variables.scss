@@ -1,0 +1,46 @@
+// src/styles/_variables.scss
+// Main color scheme
+$primary-color: #2D7783;
+$secondary-color: #031423;
+$accent-color: #a6f3ff;
+
+
+$success-color: #28a745;
+$danger-color: #dc3545;
+$warning-color: #fd7e14;
+$info-color: #1770b8;
+
+// Neutral colors
+$dark: #212529;
+$gray-900: #212529;
+$gray-800: #343a40;
+$gray-700: #495057;
+$gray-600: #6c757d;
+$gray-500: #adb5bd;
+$gray-400: #ced4da;
+$gray-300: #dee2e6;
+$gray-200: #e9ecef;
+$gray-100: #f8f9fa;
+$gray-50: #f9fafb;
+$light: #f8f9fa;
+$white: #ffffff;
+
+// Body
+$body-bg: #f8f9fa;
+$body-color: #333;
+
+// Text
+$text-dark: $gray-900;
+$text-muted: $gray-600;
+
+// Border
+$border-color: $gray-300;
+$border-radius: 0.25rem;
+$border-radius-lg: 0.5rem;
+
+// Shadow
+$box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+$box-shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+
+// Spacing
+$spacer: 1rem;

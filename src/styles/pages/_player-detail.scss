@@ -1,0 +1,776 @@
+// src/styles/pages/_player-detail.scss
+@use '../variables' as *;
+@use "sass:color";
+
+.player-detail-page {
+  padding-top: 80px;
+  background-color: var(--backgroundColor);
+  min-height: 100vh;
+  transition: background-color 0.3s ease;
+  
+  // Ensure full height coverage
+  display: flex;
+  flex-direction: column;
+  
+  .container {
+    padding: 0 1rem;
+    flex: 1; // This will make the container expand to fill available space
+  }
+  
+  // Ensure no gaps at the bottom
+  &:after {
+    content: '';
+    display: block;
+    height: 0;
+    clear: both;
+  }
+  
+  .section {
+    padding: 3rem 1rem;
+  }
+  
+  .loading, .error {
+    text-align: center;
+    padding: 3rem 0;
+    font-size: 1.25rem;
+    color: var(--textSecondary);
+  }
+  
+  .error {
+    color: $danger-color;
+  }
+  
+  // Back button
+  .back-button-container {
+    padding: 1rem 0;
+    
+    .back-button {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--surfaceColor);
+      color: var(--textPrimary);
+      border: 1px solid var(--borderColor);
+      transition: all 0.3s ease;
+      
+      i {
+        font-size: 1.2rem;
+        transition: transform 0.3s ease;
+      }
+      
+      &:hover {
+        background: var(--primaryColor);
+        color: $white;
+        transform: translateX(-5px);
+        
+        i {
+          transform: translateX(-3px);
+        }
+      }
+    }
+  }
+  
+  // Hero Section with parallax effect
+  .player-hero {
+    position: relative;
+    margin: 2rem 0;
+    padding: 4rem 2rem;
+    border-radius: 1rem;
+    overflow: hidden;
+    background: var(--surfaceColor);
+    
+    .hero-background {
+      position: absolute;
+      inset: 0;
+      z-index: 0;
+      
+      .hero-pattern {
+        position: absolute;
+        inset: 0;
+        background-image: repeating-linear-gradient(
+          45deg,
+          var(--primaryColor) 0,
+          var(--primaryColor) 2px,
+          transparent 0,
+          transparent 50%
+        );
+        background-size: 20px 20px;
+        opacity: 0.03;
+        animation: patternMove 20s linear infinite;
+      }
+    }
+    
+    .hero-content {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 2rem;
+      
+      @media (min-width: 768px) {
+        flex-direction: row;
+        justify-content: space-between;
+      }
+    }
+    
+    .player-image-wrapper {
+      position: relative;
+      animation: fadeInUp 0.8s ease-out;
+      
+      .player-image {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        background-size: cover;
+        background-position: center;
+        border: 5px solid var(--borderColor);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        transition: transform 0.3s ease;
+        
+        @media (min-width: 768px) {
+          width: 250px;
+          height: 250px;
+        }
+        
+        &:hover {
+          transform: scale(1.05);
+        }
+      }
+      
+      .player-rank {
+        font-family: var(--fontTitle);
+        color: var(--primaryColor);
+        [data-theme="dark"] & {
+          color: var(--accentColor);
+        }
+        position: absolute;
+        bottom: -10px;
+        right: 10px;
+        background: var(--backgroundColor);
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-weight: bold;
+        font-size: 1.2rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        animation: pulse 2s infinite;
+      }
+    }
+    
+    .player-info {
+      text-align: center;
+      animation: fadeInUp 0.8s ease-out 0.2s both;
+      
+      @media (min-width: 768px) {
+        text-align: left;
+        flex: 1;
+      }
+      
+      .player-name {
+        font-size: 2.5rem;
+        font-weight: bold;
+        color: var(--primaryColor);
+        [data-theme="dark"] & {
+          color: var(--accentColor);
+        }
+        margin-bottom: 0.5rem;
+        font-family: var(--fontTitle);
+        letter-spacing: 0.05em;
+      }
+      
+      .player-role {
+        font-family: var(--fontTitle);
+        letter-spacing: 3px;
+        font-size: 1.25rem;
+        color: var(--textSecondary);
+        margin-bottom: 1.5rem;
+        font-style: italic;
+      }
+      
+      .player-quick-stats {
+        display: flex;
+        gap: 2rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        
+        @media (min-width: 768px) {
+          justify-content: flex-start;
+        }
+        
+        .quick-stat {
+          text-align: center;
+          padding: 1rem;
+          border-radius: 0.5rem;
+          background: var(--backgroundColor);
+          border: 1px solid var(--borderColor);
+          min-width: 100px;
+          transition: all 0.3s ease;
+          
+          &:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          }
+          
+          .stat-value {
+            
+            display: block;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primaryColor);
+            margin-bottom: 0.25rem;
+          }
+          
+          .stat-label {
+            font-family: var(--fontMono);
+            font-size: 0.875rem;
+            color: var(--textSecondary);
+          }
+          
+          &.good {
+            border-color: $success-color;
+            
+            .stat-value {
+              color: $success-color;
+              
+            }
+          }
+          
+          &.bad {
+            border-color: $danger-color;
+            
+            .stat-value {
+              color: $danger-color;
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  // Performance Overview Section
+  .performance-overview {
+    margin: 3rem 0;
+    
+    .section-title {
+      font-family: var(--fontTitle);
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 2.5rem; // Increased from 1.5rem
+      text-align: center;
+      letter-spacing: 8px;
+      color: var(--primaryColor);
+      position: relative; // Add this to make the pseudo-element work
+      padding-bottom: 1rem; // Add padding for the separator
+      [data-theme="dark"] & {
+        color: var(--accentColor);}
+      
+      &:after {
+        content: '';
+        position: absolute;
+        bottom: 0; // Changed from -0.5rem to 0
+        left: 50%;
+        transform: translateX(-50%);
+        width: 60px;
+        height: 3px;
+        background: var(--primaryColor);
+        border-radius: 2px;
+        [data-theme="dark"] & {
+          background: var(--accentColor);
+        }
+      }
+    }
+    
+    .overview-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 2rem;
+      
+      @media (min-width: 992px) {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+    
+    .overview-card {
+      background: var(--surfaceColor);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      transition: all 0.3s ease;
+      
+      &:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+      }
+      
+      h3 {
+        font-family: var(--fontTitle);
+        font-size: 1.25rem;
+        color: var(--textSecondary);
+        [data-theme="light"] & {
+          color: var(--primaryColor);
+        }
+        margin-bottom: 1rem;
+        text-align: center;
+      }
+    }
+  }
+  
+  // Tabbed Statistics Section
+  .player-statistics {
+    margin: 3rem 0;
+    
+    .stats-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      border-bottom: 2px solid var(--borderColor);
+      
+      .tab-button {
+        font-family: var(--fontTitle);
+        letter-spacing: 2px;
+        flex: 1;
+        padding: 1rem;
+        background: none;
+        border: none;
+        color: var(--textSecondary);
+        font-weight: 600;
+        cursor: pointer;
+        position: relative;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          color: var(--primaryColor);
+        }
+        
+        &.active {
+          color: var(--primaryColor);
+          
+          &:after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primaryColor);
+            border-radius: 3px 3px 0 0;
+            animation: slideIn 0.3s ease-out;
+          }
+        }
+      }
+    }
+    
+    .tab-content {
+      animation: fadeIn 0.5s ease-out;
+    }
+    
+    .stats-content {
+      .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-bottom: 2rem;
+        
+        @media (min-width: 768px) {
+          grid-template-columns: repeat(3, 1fr);
+        }
+        
+        @media (min-width: 992px) {
+          grid-template-columns: repeat(6, 1fr);
+        }
+      }
+           .highest-score-card {
+          border-color: var(--primaryColor) !important;
+            [data-theme="dark"] & {
+              border-color: var(--accentColor) !important;
+            }
+
+          .stat-value {
+            color: var(--primaryColor);
+            [data-theme="dark"] & {
+              color: var(--accentColor);
+            }
+            font-weight: 700;
+            font-size: 2rem; // Slightly larger for emphasis
+            
+            // Add a subtle glow effect
+            text-shadow: 0 0 10px rgba(var(--accentColor), 0.3);
+          }
+          
+          .stat-label {
+            color: var(--accentColor);
+            font-weight: 600;
+          }
+          
+          // Add hover effect
+          &:hover {
+            box-shadow: 0 5px 15px rgba(var(--accentColor), 0.2);
+            transform: translateY(-3px) scale(1.02);
+          }
+        }
+        .best-bowling-card {
+          border-color: var(--primaryColor) !important;
+            [data-theme="dark"] & {
+              border-color: var(--accentColor) !important;
+            }
+          
+          .stat-value {
+            color: var(--primaryColor);
+            [data-theme="dark"] & {
+              color: var(--accentColor);
+            }
+            font-weight: 700;
+            font-size: 2rem; // Slightly larger for emphasis
+            
+            // Add a subtle glow effect
+            text-shadow: 0 0 10px rgba(var(--accentColor), 0.3);
+          }
+          
+          .stat-label {
+            color: var(--accentColor);
+            font-weight: 600;
+          }
+          
+          // Add hover effect
+          &:hover {
+            box-shadow: 0 5px 15px rgba(var(--accentColor), 0.2);
+            transform: translateY(-3px) scale(1.02);
+          }
+        }
+      .stat-card {
+        background: var(--surfaceColor);
+        padding: 1.5rem;
+        border-radius: 0.75rem;
+        text-align: center;
+        border: 1px solid var(--borderColor);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+        
+        &:before {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 3px;
+          background: var(--primaryColor);
+          transform: scaleX(0);
+          transition: transform 0.3s ease;
+        }
+        
+        &:hover {
+          transform: translateY(-3px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+          
+          &:before {
+            transform: scaleX(1);
+          }
+        }
+        
+   
+        .stat-value {
+          font-family: var(--fontTitle) !important;
+          font-size: 1.5rem;
+          letter-spacing: 2px;
+          color: var(--primaryColor);
+          margin-bottom: 0.5rem;
+        }
+        
+        .stat-label {
+          font-family: var(--fontMono) !important;
+          font-size: 0.875rem;
+          color: var(--textSecondary);
+        }
+        
+        &.good {
+          border-color: $success-color;
+          
+          &:before {
+            background: $success-color;
+          }
+          
+          .stat-value {
+            color: $success-color;
+          }
+        }
+        
+        &.bad {
+          border-color: $danger-color;
+          
+          &:before {
+            background: $danger-color;
+          }
+          
+          .stat-value {
+            color: $danger-color;
+          }
+        }
+      }
+      
+      .performance-chart {
+        background: var(--surfaceColor);
+        padding: 1.5rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        
+        h3 {
+          font-family: var(--fontTitle);
+          letter-spacing: 2px;
+          font-size: 1.25rem;
+          color: var(--textSecondary);
+          margin-bottom: 1rem;
+          text-align: center;
+        }
+      }
+    }
+  }
+  
+  // Match History Section
+  .player-matches {
+    margin: 3rem 0;
+
+    .section-title {
+       font-family: var(--fontTitle);
+      font-size: 2rem;
+      font-weight: bold;
+      margin-bottom: 1.5rem;
+      text-align: center;
+      letter-spacing: 8px;
+      color: var(--primaryColor);
+      [data-theme="dark"] & {
+        color: var(--accentColor);
+      }
+    }
+   
+    
+    .matches-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+      padding: 1.5rem;
+      background: var(--surfaceColor);
+      border-radius: 1rem;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+      font-family: var(--fontMono);      
+      .total-matches, .wins, .losses {
+        text-align: center;
+        
+        .count {
+          display: block;
+          font-size: 2rem;
+          font-weight: bold;
+          font-family: var(--fontTitle);
+          color: var(--primaryColor);
+          [data-theme="dark"] & {
+            color: var(--accentColor);
+          }
+          margin-bottom: 0.25rem;
+        }
+        
+        .label {
+          font-size: 0.875rem;
+          color: var(--textSecondary);
+        }
+      }
+      
+      .wins-losses {
+        display: flex;
+        gap: 2rem;
+        
+        .wins .count {
+          color: $success-color;
+        }
+        
+        .losses .count {
+          color: $danger-color;
+        }
+      }
+    }
+    
+    .matches-container {
+      display: grid;
+      gap: 1rem;
+      font-family: var(--fontMono);
+      
+      .match-item-wrapper {
+        animation: fadeInUp 0.5s ease-out;
+        animation-fill-mode: both;
+        
+        @for $i from 1 through 20 {
+          &:nth-child(#{$i}) {
+            animation-delay: #{$i * 0.05}s;
+          }
+        }
+      }
+      
+      .match-item {
+        background: var(--surfaceColor);
+        border-radius: 1rem;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        border: 1px solid var(--borderColor);
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+        }
+        
+        &.expanded {
+          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+        }
+        
+        .match-summary {
+          padding: 0.75rem 1rem;
+          cursor: pointer;
+          position: relative;
+          align-items: center;
+          background-color: var(--surfaceColor);
+          border-bottom: 1px solid var(--borderColor);
+          
+          &:hover {
+            background-color: var(--mutedColor);
+          }
+        }
+        
+        .match-mom {
+          background: linear-gradient(45deg, #FFD700, #FFB800);
+          color: #000;
+          padding: 0.25rem 0.75rem;
+          border-radius: 1rem;
+          font-weight: bold;
+          font-size: 0.75rem;
+          box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .match-runs {
+          &.high-score {
+            color: $success-color;
+            font-weight: bold;
+          }
+        }
+        
+        .match-wickets {
+          &.good-bowling {
+            color: $success-color;
+            font-weight: bold;
+          }
+        }
+      }
+    }
+    
+    .no-data {
+      text-align: center;
+      padding: 3rem;
+      color: var(--textSecondary);
+      font-style: italic;
+      background: var(--surfaceColor);
+      border-radius: 1rem;
+      margin: 2rem 0;
+    }
+  }
+  
+  // Custom chart tooltip
+  .custom-tooltip {
+    background: var(--surfaceColor);
+    border: 1px solid var(--borderColor);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    
+    .label {
+      font-weight: bold;
+      margin-bottom: 0.5rem;
+      color: var(--textPrimary);
+    }
+    
+    p {
+      margin: 0.25rem 0;
+      font-size: 0.875rem;
+    }
+  }
+}
+
+// Animations
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideIn {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
+}
+
+@keyframes pulse {
+  0% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  }
+  100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes patternMove {
+  from {
+    transform: translateX(0) translateY(0);
+  }
+  to {
+    transform: translateX(20px) translateY(20px);
+  }
+}
+
+// Dark theme specific adjustments
+[data-theme="dark"] {
+  .player-detail-page {
+    .player-hero {
+      background: var(--surfaceColor);
+      
+      .hero-pattern {
+        opacity: 0.02;
+      }
+    }
+    
+    .stat-card,
+    .overview-card,
+    .performance-chart {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      
+      &:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+      }
+    }
+    
+    .custom-tooltip {
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    }
+     .recharts-pie-label-text {
+    font-family: var(--fontMono) !important;
+    font-size: 0.875rem !important;
+
+    }
+  }
+}

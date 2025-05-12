@@ -1,0 +1,116 @@
+
+@use './styles/variables';
+@use './styles/components/buttons';
+@use './styles/components/cards';
+@use './styles/components/sections';
+
+// Import component styles
+@use './styles/components/common/header';
+@use './styles/components/common/footer';
+@use './styles/components/home/hero-section';
+@use './styles/components/home/team-stats';
+@use './styles/components/player/match-modal';
+
+// Import page styles
+@use './styles/pages/home';
+@use './styles/pages/players';
+@use './styles/pages/player-detail';
+@use './styles/pages/hall-of-fame';
+@use './styles/pages/leaderboard';
+@use './styles/components/common/fonts';
+@use './styles/components/common/preloader';
+@use './styles/components/common/search-bar';
+@use './styles/components/player/match-history';
+@use './styles/components/home/last-match-card';
+
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+main {
+  flex: 1;
+}
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 1rem;
+}
+
+
+
+@keyframes slideUp {
+  from { 
+    opacity: 0;
+    transform: translateY(20px) translateX(-50%);
+  }
+  to { 
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
+}
+
+@keyframes slideDown {
+  0% { 
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
+  100% { 
+    opacity: 0;
+    transform: translateY(20px) translateX(-50%);
+  }
+}
+
+.update-toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000;
+  
+  &.show {
+    animation: slideUp 0.3s ease-out forwards;
+  }
+  
+  &.hide {
+    animation: slideDown 0.3s ease-out forwards;
+  }
+  
+  .update-toast-content {
+    background-color: var(--primaryColor);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 2rem;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    
+    [data-theme="dark"] & {
+      background-color: var(--accentColor);
+    }
+    
+    span {
+      font-family: var(--fontMono);
+      font-weight: 600;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      line-height: 1;
+      padding: 0;
+      margin-left: 0.5rem;
+      cursor: pointer;
+      opacity: 0.8;
+      
+      &:hover {
+        opacity: 1;
+      }
+    }
+  }
+}

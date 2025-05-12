@@ -1,0 +1,136 @@
+// src/styles/components/_buttons.scss
+@use '../variables' as *;
+@use "sass:color";
+
+.btn {
+  display: inline-block;
+  font-family: var(--fontButton);
+  letter-spacing: 0.11rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+  vertical-align: middle;
+  user-select: none;
+  border: 1px solid transparent;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  border-radius: $border-radius;
+  transition: all 0.15s ease-in-out;
+  text-decoration: none;
+  cursor: pointer;
+  
+  &:focus {
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba($primary-color, 0.25);
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+  }
+  
+  // Button sizes
+  &-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  &-lg {
+    padding: 1rem 2rem;
+    font-size: 1.25rem;
+  }
+  
+  // Button types
+  &-primary {
+    background-color: $primary-color;
+    color: $white;
+    
+    &:hover {
+      background-color: color.adjust($primary-color, $lightness: -7.5%);
+    }
+  }
+  
+  &-secondary {
+    background-color: $secondary-color;
+    color: $white;
+    
+    &:hover {
+      background-color: color.adjust($secondary-color, $lightness: -7.5%);
+    }
+  }
+  
+  &-accent {
+    
+    background-color: var(--primaryColor);
+    color: var(--primaryText);
+
+    [data-theme="dark"] & { // Correct syntax
+      background-color: var(--accentColor);
+      color: var(--primaryText);
+    }
+
+    &:hover {
+      transform: translateY(-4px);
+    }
+  }
+  
+  &-success {
+    background-color: $success-color;
+    color: $white;
+    
+    &:hover {
+      background-color: color.adjust($success-color, $lightness: -7.5%);
+    }
+  }
+  
+  &-danger {
+    background-color: $danger-color;
+    color: $white;
+    
+    &:hover {
+      background-color: color.adjust($danger-color, $lightness: -7.5%);
+    }
+  }
+  
+  &-outline {
+    background-color: transparent;
+    
+    &-primary {
+      border-color: $primary-color;
+      color: $primary-color;
+      
+      &:hover {
+        background-color: $primary-color;
+        color: $white;
+      }
+    }
+    
+    &-secondary {
+      border-color: $secondary-color;
+      color: $secondary-color;
+      
+      &:hover {
+        background-color: $secondary-color;
+        color: $white;
+      }
+    }
+    
+    &-accent {
+      border-color: $accent-color;
+      color: $accent-color;
+      
+      &:hover {
+        background-color: $accent-color;
+        color: $dark;
+      }
+    }
+    
+    &-light {
+      border-color: $white;
+      color: $white;
+      
+      &:hover {
+        background-color: rgba($white, 0.1);
+      }
+    }
+  }
+}

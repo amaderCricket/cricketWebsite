@@ -1,0 +1,89 @@
+// src/styles/components/common/_go-to-top.scss
+@use '../../variables' as *;
+
+.go-to-top {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  width: 56px;
+  height: 56px;
+  background: linear-gradient(135deg, var(--primaryColor), var(--primaryColor) 60%, #1e5259);
+  color: $white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  outline: none;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  z-index: 1000;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  
+  // Glassmorphism effect for dark theme
+  [data-theme="dark"] & {
+    background: linear-gradient(135deg, rgba(var(--accentColor), 0.95), rgba(var(--accentColor), 0.85) 60%, rgba(242, 140, 40, 0.75));
+    background-blend-mode: multiply;
+    box-shadow: 0 4px 30px rgba(242, 140, 40, 0.3);
+  }
+  
+  &:hover {
+    transform: translateY(-5px) scale(1.1);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+    
+    [data-theme="dark"] & {
+      box-shadow: 0 8px 40px rgba(242, 140, 40, 0.4);
+    }
+  }
+  
+  &:active {
+    transform: scale(0.95);
+  }
+  
+  i {
+    font-size: 32px;
+    font-weight: 700;
+    transform: translateY(-1px);
+    transition: transform 0.3s ease;
+  }
+  
+  // Add a subtle pulse animation
+  &::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    animation: pulse 2s infinite;
+  }
+  
+  // Mobile adjustments
+  @media (max-width: 768px) {
+    bottom: 20px;
+    right: 20px;
+    width: 48px;
+    height: 48px;
+    
+    i {
+      font-size: 28px;
+    }
+  }
+}
+
+// Pulse animation
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scale(1.2);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,263 @@
+// src/styles/components/home/_hero-section.scss
+@use '../../variables' as *;
+
+.hero-section {
+  position: relative;
+  height: 100vh;
+  overflow: hidden;
+  cursor: none; // Hide cursor since we're using the ball
+  
+  // Simple gradient overlay
+  .hero-gradient-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(
+      135deg,
+      rgba(var(--primaryColor), 0.05) 0%,
+      rgba(var(--accentColor), 0.05) 100%
+    );
+    z-index: 1;
+  }
+  
+  // Floating cricket ball that follows mouse
+  .cricket-ball-float {
+    position: absolute;
+    width: 25px;
+    height: 25px;
+    background: radial-gradient(circle at 30% 30%, #ff6666, #cc0000);
+    border-radius: 50%;
+    z-index: 9999;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    pointer-events: none;
+    animation: spinBall 3s linear infinite;
+    // Cricket ball seam
+    &:after {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      clip-path: polygon(0 45%, 100% 45%, 100% 55%, 0 55%);
+    }
+
+    // Second seam for more realistic look
+    &:before {
+      content: '';
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 50%;
+      clip-path: polygon(45% 0, 55% 0, 55% 100%, 45% 100%);
+    }
+    }
+  
+  .hero-slider {
+    height: 100%;
+    position: relative;
+  }
+  
+  .hero-slide {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-size: cover;
+    background-position: center;
+    opacity: 0;
+    transition: opacity 0.8s ease;
+    
+    &.active {
+      opacity: 1;
+    }
+    
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.3) 0%,
+        rgba(0, 0, 0, 0.6) 50%,
+        rgba(0, 0, 0, 0.8) 100%
+      );
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 2;
+    }
+  }
+  
+  .hero-content {
+    text-align: center;
+    color: $white;
+    padding: 0 1rem;
+    z-index: 3;
+    max-width: 800px;
+    
+    .hero-title {
+      font-family: var(--fontTitle);
+      font-size: clamp(2.5rem, 7vw, 5rem);
+      font-weight: 900;
+      margin-bottom: 1rem;
+      opacity: 0;
+      transform: translateY(30px);
+      transition: all 0.8s ease;
+      
+      &.animate {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .hero-subtitle {
+      font-family: var(--fontTitle);
+      font-size: clamp(1rem, 2.5vw, 1.5rem);
+      margin-bottom: 2rem;
+      color: rgba(255, 255, 255, 0.9);
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.8s ease 0.2s;
+      
+      &.animate {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+    
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      flex-wrap: wrap;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.8s ease 0.4s;
+      
+      &.animate {
+        opacity: 1;
+        transform: translateY(0);
+      }
+      
+      .btn {
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        cursor: pointer !important; // Make sure buttons show pointer cursor
+        
+        &:before {
+          content: '';
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.1);
+          transform: translate(-50%, -50%);
+          transition: width 0.6s, height 0.6s;
+        }
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+          
+          &:before {
+            width: 300px;
+            height: 300px;
+          }
+        }
+      }
+    }
+  }
+  
+  // Slide navigation
+  .slide-nav {
+    position: absolute;
+    bottom: 40px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 1rem;
+    z-index: 10;
+    
+    .nav-dot {
+      width: 60px;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.3);
+      border: none;
+      border-radius: 2px;
+      cursor: pointer !important;
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      
+      &:hover {
+        background: rgba(255, 255, 255, 0.5);
+      }
+      
+      &.active {
+        background: rgba(255, 255, 255, 0.5);
+        
+        .progress {
+          transform: scaleX(1);
+          animation: progressBar 7s linear;
+        }
+      }
+      
+      .progress {
+        position: absolute;
+        top: 0;
+        left: 0;
+        height: 100%;
+        width: 100%;
+        background: var(--accentColor);
+        transform: scaleX(0);
+        transform-origin: left;
+      }
+    }
+  }
+}
+
+// Simple keyframe animations
+@keyframes progressBar {
+  0% { transform: scaleX(0); }
+  100% { transform: scaleX(1); }
+}
+
+// Dark theme adjustments
+[data-theme="dark"] {
+  .hero-section {
+    .hero-gradient-overlay {
+      background: linear-gradient(
+        135deg,
+        rgba(0, 0, 0, 0.1) 0%,
+        rgba(0, 0, 0, 0.2) 100%
+      );
+    }
+  }
+}
+
+// Responsive - show normal cursor on mobile
+@media (max-width: 768px) {
+  .hero-section {
+    height: 80vh;
+    cursor: auto; // Show normal cursor on mobile
+    
+    .cricket-ball-float {
+      display: none; // Hide the ball on mobile devices
+    }
+    
+    .slide-nav {
+      bottom: 20px;
+      gap: 0.5rem;
+      
+      .nav-dot {
+        width: 40px;
+        height: 3px;
+      }
+    }
+  }
+}
