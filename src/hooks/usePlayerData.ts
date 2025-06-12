@@ -13,65 +13,50 @@ interface UsePlayerDataResult {
 
 export const usePlayerData = (): UsePlayerDataResult => {
   const [players, setPlayers] = useState<PlayerData[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [loading, setLoading] = useState<boolean>(false); // Start with false
   const [error, setError] = useState<Error | null>(null);
 
-  // Create a memoized fetchPlayerData function to avoid recreating it on every render
   const fetchPlayerData = useCallback(async (forceRefresh = false): Promise<void> => {
     try {
-      // Check for cached player data first
+      // Always check for cached data first
       const cachedPlayersString = localStorage.getItem('cached_players_data');
-      if (cachedPlayersString && !forceRefresh) {
+      if (cachedPlayersString) {
         try {
           const cachedPlayers = JSON.parse(cachedPlayersString);
           if (Array.isArray(cachedPlayers) && cachedPlayers.length > 0) {
-            // Use cached data immediately
             setPlayers(cachedPlayers);
-            setLoading(false);
+            // Don't set loading to false here, it's already false
             
-            // Then fetch fresh data in background without loading state
-            cacheService.fetchPlayers(true)
-              .then(result => {
-                if (!result || !result.stats || !Array.isArray(result.stats)) {
-                  return; // Invalid data, keep using cached
-                }
-                // Parse and update if different
-                const parsedPlayers = parsePlayerData(result.stats);
-                if (JSON.stringify(parsedPlayers) !== cachedPlayersString) {
-                  localStorage.setItem('cached_players_data', JSON.stringify(parsedPlayers));
-                  setPlayers(parsedPlayers);
-                }
-              })
-              .catch(err => {
-                console.error('Background refresh error:', err);
-                // No UI updates on background errors
-              });
-              
-            return; // Exit early, we have data
+            // Fetch fresh data in background without loading state
+            if (forceRefresh) {
+              cacheService.fetchPlayers(true)
+                .then(result => {
+                  if (result?.stats) {
+                    const parsedPlayers = parsePlayerData(result.stats);
+                    localStorage.setItem('cached_players_data', JSON.stringify(parsedPlayers));
+                    setPlayers(parsedPlayers);
+                  }
+                })
+                .catch(err => console.error('Background refresh error:', err));
+            }
+            return;
           }
         } catch (e) {
           console.error('Error parsing cached players:', e);
-          // Continue with normal loading
         }
       }
       
-      // Normal flow - show loading state
+      // Only show loading if no cached data exists
       setLoading(true);
       
-      // Get players data from cache or API
       const result = await cacheService.fetchPlayers(forceRefresh);
       
-      // Safety check for valid data structure
-      if (!result || !result.stats || !Array.isArray(result.stats)) {
+      if (!result?.stats || !Array.isArray(result.stats)) {
         throw new Error('Invalid data format received from API');
       }
       
-      // Parse the player data
       const parsedPlayers = parsePlayerData(result.stats);
-      
-      // Cache the data for future use
       localStorage.setItem('cached_players_data', JSON.stringify(parsedPlayers));
-      
       setPlayers(parsedPlayers);
       setLoading(false);
       
@@ -83,14 +68,12 @@ export const usePlayerData = (): UsePlayerDataResult => {
     }
   }, []);
 
-  // Initial data load
   useEffect(() => {
     fetchPlayerData();
   }, [fetchPlayerData]);
 
-  // Function to refresh data on demand
   const refreshData = useCallback(async (): Promise<void> => {
-    await fetchPlayerData(true);
+    await fetchPlayerData(true); // This will update in background
   }, [fetchPlayerData]);
 
   return { players, loading, error, refreshData };

@@ -198,7 +198,40 @@ export const cacheService = {
       return { teams: {}, matches: [] };
     }
   },
+
+  // Fetch stats data (for stats page)
+async fetchStatsData(forceRefresh = false): Promise<{stats: Array<Array<string | number>>}> {
+  const cacheKey = 'cricket_stats_data';
   
+  try {
+    // Check if cache exists and is valid
+    const cachedData = localStorage.getItem(cacheKey);
+    const isExpired = this.isCacheExpired(cacheKey);
+    
+    if (cachedData && !isExpired && !forceRefresh) {
+      return JSON.parse(cachedData);
+    }
+    
+    // Fetch fresh data
+    return await this.fetchFromApiAndCache<{stats: Array<Array<string | number>>}>(
+      `${API_CONFIG.baseUrl}?type=stats`, 
+      cacheKey
+    );
+  } catch (error) {
+    console.error("Error fetching stats data:", error);
+    
+    // Try to use cached data as fallback
+    const cachedData = localStorage.getItem(cacheKey);
+    if (cachedData) {
+      return JSON.parse(cachedData);
+    }
+    
+    // If no cache at all, return empty data
+    return { stats: [] };
+  }
+},
+  
+
   // Fetch players list with stats
   async fetchPlayers(forceRefresh = false): Promise<PlayersData> {
     const cacheKey = PLAYERS_KEY;

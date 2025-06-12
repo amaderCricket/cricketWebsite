@@ -5,7 +5,7 @@ import TeamStats from '../components/home/TeamStats';
 import LastMatchCard from '../components/home/LastMatchCard';
 import { useDataFetcher } from '../hooks/useDataFetcher';
 import { cacheService } from '../services/cacheService';
-
+import StatsDataViewer from '../components/temp/StatsDataViewer'; // Import StatsDataViewer for debugging
 
 
 
@@ -30,6 +30,7 @@ function Home() {
         <section className="section">
           <TeamStats />
           <LastMatchCard />
+          <StatsDataViewer />
          
         </section>
       </div>

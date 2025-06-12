@@ -7,63 +7,50 @@ import { cacheService } from '../services/cacheService';
  * Use this in the top-level App component
  */
 export const useCacheInitializer = () => {
-  const [isInitialized, setIsInitialized] = useState(false);
+ 
   const [isUpdating, setIsUpdating] = useState(false);
   const [lastUpdateTime, setLastUpdateTime] = useState<Date | null>(null);
   const [hasInitializedUpdater, setHasInitializedUpdater] = useState(false);
 
   // Initialize the cache system
   useEffect(() => {
-    const initialize = async () => {
-      try {
-        // First load data (either from cache or API)
-        await Promise.all([
-          cacheService.fetchSummaryData(),
-          cacheService.fetchPlayers()
-        ]);
-        
-        setIsInitialized(true);
-        
-        // Only start the background updater after initial data load
-        if (!hasInitializedUpdater) {
-          cacheService.initBackgroundUpdater();
-          setHasInitializedUpdater(true);
+      const initialize = async () => {
+        try {
+          // Load data silently in background (no loading state)
+          await Promise.all([
+            cacheService.fetchSummaryData(),
+            cacheService.fetchPlayers()
+          ]);
+          
+          // Start the background updater
+          if (!hasInitializedUpdater) {
+            cacheService.initBackgroundUpdater();
+            setHasInitializedUpdater(true);
+          }
+        } catch (error) {
+          console.error("Failed to initialize cache system:", error);
         }
-      } catch (error) {
-        console.error("Failed to initialize cache system:", error);
-      }
-    };
+      };
 
-    initialize();
-  }, [hasInitializedUpdater]);
+      initialize();
+    }, [hasInitializedUpdater]);
 
   // Listen for cache updates - only do this after initial load
-  useEffect(() => {
-    if (!isInitialized) return;
-    
-    // console.log("Setting up cache update listener");
-    
-    // Setup listener for cache updates
+ useEffect(() => {
     const removeListener = cacheService.onUpdate(() => {
-      // console.log("Cache update detected!");
       setIsUpdating(true);
       setLastUpdateTime(new Date());
       
-      // Reset updating status after a delay (changed to 2 seconds)
       setTimeout(() => {
         setIsUpdating(false);
-      }, 2000); // Changed from 2000ms to match the App.tsx timeout
+      }, 2000);
     });
     
-    // Cleanup listener on unmount
-    return () => {
-      // console.log("Removing cache update listener");
-      removeListener();
-    };
-  }, [isInitialized]);
+    return () => removeListener();
+  }, []);
 
   return {
-    isInitialized,
+    isInitialized: true, // Always return true
     isUpdating,
     lastUpdateTime
   };

@@ -7,10 +7,11 @@ import PlayerDetail from './pages/PlayerDetail'
 import Leaderboard from './pages/Leaderboard'
 import HallOfFame  from './pages/HallofFame'
 import Rules from './pages/Rules'
+import Stats from './pages/Stats'
 
 import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
-import { useCacheInitializer } from './hooks/useCacheInitializer'
+
 import { prefetchMatchData } from './services/matchDataService'
 import {cacheService} from './services/cacheService'
 
@@ -23,7 +24,7 @@ import Preloader from './components/common/PreLoader'
 
 
 function App() {
-  const { isInitialized } = useCacheInitializer();
+ 
   
 useEffect(() => {
   themeService.initializeTheme();
@@ -73,7 +74,7 @@ useEffect(() => {
       <div className="app">
         <Header />
         <main>
-          {!isInitialized ? <Preloader /> : (
+          
             <Suspense fallback={<Preloader />}>
               <Routes>
                 <Route path="/" element={<Home />} />
@@ -82,11 +83,13 @@ useEffect(() => {
                 <Route path="/hall-of-fame" element={<HallOfFame />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/rules" element={<Rules />} />
+                <Route path="/stats" element={<Stats />} />
+                {/* Add more routes as needed */}
                
                 
               </Routes>
             </Suspense>
-          )}
+        
         </main>
         <Footer />
         

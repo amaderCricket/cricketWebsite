@@ -7,6 +7,7 @@ import SearchBar from './SearchBar'
 import { usePlayerData } from '../../hooks/usePlayerData'
 import { getPlayerImage } from '../../utils/imageUtils'
 
+
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
@@ -154,10 +155,12 @@ function Header() {
           
           <ul className="nav-links">
             <li><button className={isActive('/') ? 'active' : ''} onClick={() => handleNavigation('/')}>Home</button></li>
+            <li><button className={isActive('/stats') ? 'active' : ''} onClick={() => handleNavigation('/stats')}>Stats</button></li>
             <li><button className={isActive('/players') ? 'active' : ''} onClick={() => handleNavigation('/players')}>Players</button></li>
             <li><button className={isActive('/hall-of-fame') ? 'active' : ''} onClick={() => handleNavigation('/hall-of-fame')}>Hall of Fame</button></li>
             <li><button className={isActive('/leaderboard') ? 'active' : ''} onClick={() => handleNavigation('/leaderboard')}>Leaderboard</button></li>
             <li><button className={isActive('/rules') ? 'active' : ''} onClick={() => handleNavigation('/rules')}>Rules</button></li>
+            
           </ul>
         </nav>
 
