@@ -16,7 +16,7 @@ function StatsDataViewer() {
       console.log('🔍 Fetching Stats data...');
       
       // Try to fetch the stats data
-      const response = await axios.get(`${API_CONFIG.baseUrl}?type=stats`);
+      const response = await axios.get(`${API_CONFIG.baseUrl}?type=recentperformance`);
       
       console.log('📊 Raw API Response:', response.data);
       

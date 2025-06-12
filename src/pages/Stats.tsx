@@ -87,9 +87,14 @@ const fetchStatsData = useCallback(async () => {
     
     // Fetch main stats
     const response = await axios.get(`${API_CONFIG.baseUrl}?type=stats`);
-    if (response.data && Array.isArray(response.data)) {
-      const headers = response.data[0];
-      const dataRows = response.data.slice(1);
+    console.log("Main stats response:", response.data);
+    
+    // Check if response has the new structure with stats property
+    const statsArray = response.data?.stats || response.data;
+    
+    if (statsArray && Array.isArray(statsArray)) {
+      const headers = statsArray[0];
+      const dataRows = statsArray.slice(1);
 
       const getColumnIndex = (columnName: string): number => {
         return headers.findIndex((header: string | number) =>
@@ -150,11 +155,15 @@ const fetchStatsData = useCallback(async () => {
       // Fetch recent stats
       try {
         console.log("Fetching recent stats...");
-        const recentResponse = await axios.get(`${API_CONFIG.baseUrl}?type=recentStats`);
+        const recentResponse = await axios.get(`${API_CONFIG.baseUrl}?type=recentperformance`);
         console.log("Recent stats response:", recentResponse.data);
-        if (recentResponse.data && Array.isArray(recentResponse.data)) {
-          const recentHeaders = recentResponse.data[0];
-          const recentDataRows = recentResponse.data.slice(1);
+        
+        // Check if response has the new structure with stats property
+        const recentStatsArray = recentResponse.data?.stats || recentResponse.data;
+        
+        if (recentStatsArray && Array.isArray(recentStatsArray)) {
+          const recentHeaders = recentStatsArray[0];
+          const recentDataRows = recentStatsArray.slice(1);
 
           const getRecentColumnIndex = (columnName: string): number => {
             return recentHeaders.findIndex((header: string | number) =>
@@ -753,9 +762,39 @@ return (
                     </div>
                     )}
                 </td>
-                <td>{player.matches}</td>
+               <td>{player.matches}</td>
                 {!recentStatsView.startsWith('bowling') && <td>{player.innings}</td>}
-                {/* Rest of the cell rendering logic same as main table */}
+                {(recentStatsView === 'general' ? generalColumns :
+                recentStatsView === 'batting-summary' ? battingSummaryColumns :
+                recentStatsView === 'batting-milestones' ? battingMilestonesColumns :
+                recentStatsView === 'batting-breakdown' ? battingBreakdownColumns :
+                recentStatsView === 'bowling-summary' ? bowlingSummaryColumns :
+                recentStatsView === 'bowling-highlights' ? bowlingHighlightsColumns :
+                bowlingBreakdownColumns
+                ).map((col) => {
+                const cellClass = getCellClass(player, col.key, recentPlayers);
+                let cellContent;
+                let additionalClass = '';
+                
+                // Special handling for ratings
+                if (col.key === 'ratings') {
+                    const value = player[col.key as keyof StatsPlayer] || '';
+                    const ratingInfo = formatRating(value);
+                    cellContent = ratingInfo.formatted;
+                    additionalClass = ratingInfo.className;
+                } else {
+                    cellContent = col.format 
+                    ? col.format(player[col.key as keyof StatsPlayer] as number) 
+                    : player[col.key as keyof StatsPlayer];
+                }
+                
+                return (
+                    <td key={col.key} className={`${cellClass} ${additionalClass}`.trim()}>
+                    {cellContent}
+                    </td>
+                );
+                })}
+               
                 </tr>
             ))}
             </tbody>

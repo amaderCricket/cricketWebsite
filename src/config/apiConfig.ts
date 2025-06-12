@@ -1,8 +1,8 @@
 // src/config/apiConfig.ts
 export const API_CONFIG = {
   // Your new App Script URL
-    baseUrl: 'https://script.google.com/macros/s/AKfycby8z3pdN5-9FGnYy-27BLLGdxGwCy4Xq4YShWsnjm7Y6pJKs2fF9YHknTZ22kykyZU/exec',
-    fallbackUrl: 'https://corsproxy.io/?' + encodeURIComponent('https://script.google.com/macros/s/AKfycby8z3pdN5-9FGnYy-27BLLGdxGwCy4Xq4YShWsnjm7Y6pJKs2fF9YHknTZ22kykyZU/exec'),
+    baseUrl: 'https://script.google.com/macros/s/AKfycbykQxH3CjAjDW9zWQ9MhGsXLjPL8e3t_iVOO6hjT6R9w2NrhR46BEaadpNaglZooiA/exec',
+    fallbackUrl: 'https://corsproxy.io/?' + encodeURIComponent('https://script.google.com/macros/s/AKfycbykQxH3CjAjDW9zWQ9MhGsXLjPL8e3t_iVOO6hjT6R9w2NrhR46BEaadpNaglZooiA/exec'),
 
   
   // Cache keys
