@@ -174,17 +174,15 @@ function PlayerDetail() {
   // Function to load player image
   const loadPlayerImageAndMatches = useCallback(async (playerData: PlayerData) => {
     try {
-      const imageUrl = await getPlayerImage({
-        name: playerData.name,
-        playerNameForImage: playerData.playerNameForImage
-      });
+      // USE NEW METHOD:
+      const imageUrl = await cacheService.loadPlayerImage(
+        playerData.name,
+        getPlayerImage
+      );
       
       setPlayer(prevPlayer => {
         if (!prevPlayer) return null;
-        return {
-          ...prevPlayer,
-          imageUrl
-        };
+        return { ...prevPlayer, imageUrl };
       });
       
       loadPlayerMatches(playerData.name);

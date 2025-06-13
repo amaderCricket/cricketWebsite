@@ -42,10 +42,7 @@ function Header() {
       if (players.length > 0) {
         const updatedPlayers = await Promise.all(
           players.map(async (player) => {
-            const imageUrl = await getPlayerImage({ 
-              name: player.name, 
-              playerNameForImage: player.playerNameForImage 
-            });
+            const imageUrl = await cacheService.loadPlayerImage(player.name, getPlayerImage);
             return { 
               name: player.name,
               role: player.role,
@@ -109,11 +106,7 @@ const handleUpdateClick = async (e: React.MouseEvent) => {
   setIsUpdating(true);
   
   try {
-    // Force update all data
-    await Promise.all([
-      cacheService.fetchSummaryData(true),
-      cacheService.fetchPlayers(true)
-    ]);
+    cacheService.forceUpdate(); 
   } finally {
     setIsUpdating(false);
   }

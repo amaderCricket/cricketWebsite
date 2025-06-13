@@ -3,6 +3,7 @@ import { useEffect, useState, useMemo, memo } from 'react';
 import { Link } from 'react-router-dom';
 import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
+import { cacheService } from '../../services/cacheService';
 
 // Enhanced interface to include individual stats
 interface PlayerWithImage extends PlayerTeamInfo {
@@ -193,34 +194,18 @@ function LastMatchCard() {
     if (!matchData || !matchData.players) return;
     
     const loadPlayerImages = async () => {
-      const images: Record<string, string> = {};
-      
-      // OPTIMIZATION: Process players in batches
       for (let i = 0; i < matchData.players.length; i++) {
+        const player = matchData.players[i];
+        
         try {
-          const player = matchData.players[i];
-          const cachedImageUrl = localStorage.getItem(`player_image_${player.playerName}`);
+          // USE NEW METHOD:
+         const imageUrl = await cacheService.loadPlayerImage(player.playerName, getPlayerImage);
           
-          if (cachedImageUrl) {
-            // Use cached image path immediately
-            images[player.playerName] = cachedImageUrl;
-            setPlayerImages(prev => ({ ...prev, [player.playerName]: cachedImageUrl }));
-          } else {
-            // Load image and cache it
-            const imageUrl = await getPlayerImage({
-              name: player.playerName,
-              playerNameForImage: player.playerName
-            });
-            
-            images[player.playerName] = imageUrl;
-            setPlayerImages(prev => ({ ...prev, [player.playerName]: imageUrl }));
-            localStorage.setItem(`player_image_${player.playerName}`, imageUrl);
-          }
+          setPlayerImages(prev => ({ 
+            ...prev, 
+            [player.playerName]: imageUrl 
+          }));
           
-          // Add slight delay between player image loads to prevent freezing
-          if (i % 2 === 0) {
-            await new Promise(resolve => setTimeout(resolve, 50));
-          }
         } catch (error) {
           console.error(`Error loading image:`, error);
         }

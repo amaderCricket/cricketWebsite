@@ -397,10 +397,7 @@ const loadPlayerImages = async (
   const images: Record<string, string> = {};
   for (const player of playersList) {
     try {
-      const imageUrl = await getPlayerImage({
-        name: player.playerName,
-        playerNameForImage: player.playerName,
-      });
+      const imageUrl = await cacheService.loadPlayerImage(player.playerName, getPlayerImage);
       images[player.playerName] = imageUrl;
     } catch (error) {
       console.error(`Error loading image for ${player.playerName}:`, error);

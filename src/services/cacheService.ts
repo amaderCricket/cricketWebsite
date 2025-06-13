@@ -2,23 +2,27 @@
 import axios from 'axios';
 import { API_CONFIG } from '../config/apiConfig';
 
-// Cache keys
+// Cache keys - keeping your existing ones
 const METADATA_KEY = API_CONFIG.METADATA_KEY;
 const SUMMARY_KEY = API_CONFIG.SUMMARY_KEY;
 const PLAYERS_KEY = API_CONFIG.PLAYERS_KEY;
 const PLAYER_PREFIX = API_CONFIG.PLAYER_PREFIX;
 const LAST_CHECK_KEY = 'cricket_last_check_time';
 
-// Cache TTL (time-to-live)
-const CACHE_TTL = 6 * 60 * 60 * 1000; // Reduced to 6 hours from 24 hours
-const UPDATE_CHECK_INTERVAL = 2 * 60 * 1000; // Reduced to 2 minutes from 5 minutes
-const UPDATE_COOLDOWN = 15 * 1000; // Reduced to 15 seconds from 30 seconds
+// Cache TTL Settings
+const CACHE_TTL = 6 * 60 * 60 * 1000; // 6 hours
+const UPDATE_CHECK_INTERVAL = 1 * 60 * 1000; // 1 minute
+const UPDATE_COOLDOWN = 15 * 1000; // 15 seconds
+const IMAGE_CACHE_TTL = 1 * 24 * 60 * 60 * 1000; // 1 day for images
 
-// Event system for cache updates
+// Session storage prefix for navigation cache
+const SESSION_PREFIX = 'nav_cache_';
+
+// Event system for cache updates - keeping your existing system
 const updateEvents = new EventTarget();
 const UPDATE_EVENT = 'cache-updated';
 
-// Define types for our data
+// Keep your existing interfaces
 interface CacheMetadata {
   lastUpdated: number;
   version: string;
@@ -44,25 +48,77 @@ interface PlayerDetailsData {
   [key: string]: unknown;
 }
 
+interface CacheItem<T> {
+  data: T;
+  timestamp: number;
+  version?: string;
+}
+
 // Initialize the background update checker
 let updateCheckerInitialized = false;
+let lastLiveCheck = 0;
 
 // Add request timeout for all axios requests
-axios.defaults.timeout = 10000; // 10 seconds timeout
+axios.defaults.timeout = 12000; // 12 seconds timeout
 
 export const cacheService = {
-  // Listen for update events
+  // Keep your existing onUpdate method
   onUpdate(callback: () => void): () => void {
     const eventListener = () => callback();
     updateEvents.addEventListener(UPDATE_EVENT, eventListener);
     
-    // Return a function to remove the listener
     return () => {
       updateEvents.removeEventListener(UPDATE_EVENT, eventListener);
     };
   },
 
-  // Check if it's time to do an update check
+  // Navigation Cache Methods (Session Storage)
+  setNavigationCache<T>(key: string, data: T): void {
+    const cacheItem: CacheItem<T> = {
+      data,
+      timestamp: Date.now(),
+    };
+    sessionStorage.setItem(`${SESSION_PREFIX}${key}`, JSON.stringify(cacheItem));
+  },
+
+  getNavigationCache<T>(key: string): T | null {
+    try {
+      const cached = sessionStorage.getItem(`${SESSION_PREFIX}${key}`);
+      if (!cached) return null;
+
+      const cacheItem: CacheItem<T> = JSON.parse(cached);
+      const isExpired = Date.now() - cacheItem.timestamp > CACHE_TTL;
+      
+      return isExpired ? null : cacheItem.data;
+    } catch {
+      return null;
+    }
+  },
+
+  // Enhanced Image Cache Methods
+  setImageCache(playerName: string, imageUrl: string): void {
+    const cacheItem: CacheItem<string> = {
+      data: imageUrl,
+      timestamp: Date.now(),
+    };
+    localStorage.setItem(`player_image_${playerName}`, JSON.stringify(cacheItem));
+  },
+
+  getImageCache(playerName: string): string | null {
+    try {
+      const cached = localStorage.getItem(`player_image_${playerName}`);
+      if (!cached) return null;
+
+      const cacheItem: CacheItem<string> = JSON.parse(cached);
+      const isExpired = Date.now() - cacheItem.timestamp > IMAGE_CACHE_TTL;
+      
+      return isExpired ? null : cacheItem.data;
+    } catch {
+      return null;
+    }
+  },
+
+  // Keep your existing shouldCheckForUpdates method
   shouldCheckForUpdates(): boolean {
     const lastCheckTime = localStorage.getItem(LAST_CHECK_KEY);
     if (!lastCheckTime) return true;
@@ -70,18 +126,16 @@ export const cacheService = {
     const now = Date.now();
     const lastCheck = parseInt(lastCheckTime, 10);
     
-    // Check if enough time has passed since last check
     return now - lastCheck > UPDATE_COOLDOWN;
   },
 
-  // Record that we did an update check
+  // Keep your existing recordUpdateCheck method
   recordUpdateCheck(): void {
     localStorage.setItem(LAST_CHECK_KEY, Date.now().toString());
   },
 
-  // Check if cache needs updating with improved error handling
+  // Enhanced checkForUpdates with live update capability
   async checkForUpdates(bypassCooldown = false): Promise<boolean> {
-    // Respect cooldown unless explicitly bypassed
     if (!bypassCooldown && !this.shouldCheckForUpdates()) {
       return false;
     }
@@ -89,37 +143,52 @@ export const cacheService = {
     this.recordUpdateCheck();
     
     try {
-      // Get the latest metadata from server
       const response = await axios.get(`${API_CONFIG.baseUrl}?type=checkUpdate`);
       const serverMetadata: CacheMetadata = response.data;
       
-      // Get our stored metadata
       const storedMetadataJson = localStorage.getItem(METADATA_KEY);
       
       if (!storedMetadataJson) {
-        // No stored metadata, we need to update
         localStorage.setItem(METADATA_KEY, JSON.stringify(serverMetadata));
         return true;
       }
       
       const storedMetadata = JSON.parse(storedMetadataJson) as CacheMetadata;
       
-      // Check if server data is newer
       if (serverMetadata.lastUpdated > storedMetadata.lastUpdated || 
           serverMetadata.version !== storedMetadata.version) {
-        // Update metadata
         localStorage.setItem(METADATA_KEY, JSON.stringify(serverMetadata));
-        return true; // Update needed
+        return true;
       }
       
-      return false; // No update needed
+      return false;
     } catch (error) {
       console.error("Error checking for updates:", error);
-      return false; // If error, don't trigger refresh - use existing cache
+      return false;
     }
   },
 
-  // Check if cache is expired
+  // Background live update checker
+  async backgroundLiveCheck(): Promise<void> {
+    const now = Date.now();
+    if (now - lastLiveCheck < UPDATE_CHECK_INTERVAL) return;
+    
+    lastLiveCheck = now;
+    
+    try {
+      const hasUpdates = await this.checkForUpdates(true);
+      if (hasUpdates) {
+        // Clear navigation cache to force fresh data
+        this.clearNavigationCache();
+        // Notify components
+        updateEvents.dispatchEvent(new Event(UPDATE_EVENT));
+      }
+    } catch (error) {
+      console.error('Background live check failed:', error);
+    }
+  },
+
+  // Keep your existing isCacheExpired method
   isCacheExpired(key: string): boolean {
     const timestampKey = `${key}_timestamp`;
     const timestamp = localStorage.getItem(timestampKey);
@@ -131,279 +200,340 @@ export const cacheService = {
     
     return currentTime - savedTime > CACHE_TTL;
   },
-  
-  // Start background update checker
-  initBackgroundUpdater(): void {
-    if (updateCheckerInitialized) return;
-    
-    const checkForUpdatesAndRefresh = async () => {
-      try {
-        const needsUpdate = await this.checkForUpdates(true);
-        
-        if (needsUpdate) {
-          // Refresh main data
-          await Promise.allSettled([
-            this.fetchSummaryData(true),
-            this.fetchPlayers(true)
-          ]);
-          
-          // Refresh player details for cached players
-          this.refreshCachedPlayerDetails();
-          
-          // Notify subscribers that we've updated
-          updateEvents.dispatchEvent(new Event(UPDATE_EVENT));
-        }
-      } catch (error) {
-        console.error("Error in background update:", error);
-        // Don't re-throw, just log to avoid breaking the update cycle
-      }
-    };
-    
-    // Run now and then schedule
-    setTimeout(() => {
-      checkForUpdatesAndRefresh();
-    }, 3000); // Delay initial check to allow page to load properly
-    
-    // Setup interval
-    setInterval(checkForUpdatesAndRefresh, UPDATE_CHECK_INTERVAL);
-    
-    updateCheckerInitialized = true;
-  },
-  
-  // Fetch summary data (home page data) with improved error handling
+
+  // Enhanced fetchSummaryData with navigation cache
   async fetchSummaryData(forceRefresh = false): Promise<SummaryData> {
-    const cacheKey = SUMMARY_KEY;
+    const sessionKey = 'summary';
     
     try {
-      // Check if cache exists and is valid - use immediately if available
-      const cachedData = localStorage.getItem(cacheKey);
-      const isExpired = this.isCacheExpired(cacheKey);
-      
-      if (cachedData && !isExpired && !forceRefresh) {
-        return JSON.parse(cachedData) as SummaryData;
+      // Check navigation cache first (for back/forth navigation)
+      if (!forceRefresh) {
+        const navCached = this.getNavigationCache<SummaryData>(sessionKey);
+        if (navCached) {
+          // Start background update check
+          setTimeout(() => this.backgroundLiveCheck(), 100);
+          return navCached;
+        }
       }
-      
+
       // Fetch fresh data
-      return await this.fetchFromApiAndCache<SummaryData>(`${API_CONFIG.baseUrl}?type=summary`, cacheKey);
+      const response = await axios.get(`${API_CONFIG.baseUrl}?type=summary`);
+      const data = response.data as SummaryData;
+      
+      // Cache for navigation
+      this.setNavigationCache(sessionKey, data);
+      
+      return data;
     } catch (error) {
       console.error("Error fetching summary data:", error);
       
-      // Try to use cached data as fallback even if expired
-      const cachedData = localStorage.getItem(cacheKey);
+      // Try navigation cache as fallback
+      const navCached = this.getNavigationCache<SummaryData>(sessionKey);
+      if (navCached) return navCached;
+      
+      // Try old localStorage fallback
+      const cachedData = localStorage.getItem(SUMMARY_KEY);
       if (cachedData) {
         return JSON.parse(cachedData) as SummaryData;
       }
       
-      // If no cache at all, return empty data
       return { teams: {}, matches: [] };
     }
   },
 
-  // Fetch stats data (for stats page)
-async fetchStatsData(forceRefresh = false): Promise<{stats: Array<Array<string | number>>}> {
-  const cacheKey = 'cricket_stats_data';
-  
-  try {
-    // Check if cache exists and is valid
-    const cachedData = localStorage.getItem(cacheKey);
-    const isExpired = this.isCacheExpired(cacheKey);
-    
-    if (cachedData && !isExpired && !forceRefresh) {
-      return JSON.parse(cachedData);
-    }
-    
-    // Fetch fresh data
-    return await this.fetchFromApiAndCache<{stats: Array<Array<string | number>>}>(
-      `${API_CONFIG.baseUrl}?type=stats`, 
-      cacheKey
-    );
-  } catch (error) {
-    console.error("Error fetching stats data:", error);
-    
-    // Try to use cached data as fallback
-    const cachedData = localStorage.getItem(cacheKey);
-    if (cachedData) {
-      return JSON.parse(cachedData);
-    }
-    
-    // If no cache at all, return empty data
-    return { stats: [] };
-  }
-},
-  
-
-  // Fetch players list with stats
+  // Enhanced fetchPlayers with navigation cache
   async fetchPlayers(forceRefresh = false): Promise<PlayersData> {
-    const cacheKey = PLAYERS_KEY;
+    const sessionKey = 'players';
     
     try {
-      // Check if cache exists and is valid
-      const cachedData = localStorage.getItem(cacheKey);
-      const isExpired = this.isCacheExpired(cacheKey);
-      
-      if (cachedData && !isExpired && !forceRefresh) {
-        return JSON.parse(cachedData) as PlayersData;
+      // Check navigation cache first
+      if (!forceRefresh) {
+        const navCached = this.getNavigationCache<PlayersData>(sessionKey);
+        if (navCached) {
+          setTimeout(() => this.backgroundLiveCheck(), 100);
+          return navCached;
+        }
       }
-      
+
       // Fetch fresh data
-      return await this.fetchFromApiAndCache<PlayersData>(`${API_CONFIG.baseUrl}?type=players`, cacheKey);
+      const response = await axios.get(`${API_CONFIG.baseUrl}?type=players`);
+      const data = response.data as PlayersData;
+      
+      // Cache for navigation
+      this.setNavigationCache(sessionKey, data);
+      
+      return data;
     } catch (error) {
       console.error("Error fetching players:", error);
       
-      // Try to use cached data as fallback even if expired
-      const cachedData = localStorage.getItem(cacheKey);
+      // Try navigation cache as fallback
+      const navCached = this.getNavigationCache<PlayersData>(sessionKey);
+      if (navCached) return navCached;
+      
+      // Try old localStorage fallback
+      const cachedData = localStorage.getItem(PLAYERS_KEY);
       if (cachedData) {
         return JSON.parse(cachedData) as PlayersData;
       }
       
-      // If no cache at all, return empty data
       return { stats: [] };
     }
   },
-  
-  // Generic fetch and cache method with improved retry logic
-  async fetchFromApiAndCache<T>(url: string, cacheKey: string): Promise<T> {
-    // Function to attempt the fetch with retries
-    const fetchWithRetry = async (retries = 2): Promise<T> => {
-      try {
-        const response = await axios.get(url);
-        const data = response.data as T;
-        
-        // Cache the data with timestamp
-        localStorage.setItem(cacheKey, JSON.stringify(data));
-        localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
-        
-        return data;
-      } catch (error) {
-        if (retries > 0) {
-          // Wait before retry
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          return fetchWithRetry(retries - 1);
-        }
-        throw error;
-      }
-    };
-    
-    return fetchWithRetry();
-  },
-  
-  // Fetch a specific player's details - optimized to handle updates
+
+  // Enhanced fetchPlayerDetails with navigation cache
   async fetchPlayerDetails(playerName: string, forceRefresh = false): Promise<PlayerDetailsData> {
     if (!playerName) {
       throw new Error("Player name is required");
     }
     
-    const cacheKey = `${PLAYER_PREFIX}${playerName}`;
+    const sessionKey = `player_${playerName}`;
     
     try {
-      // First, check if we have cached data
-      const cachedData = localStorage.getItem(cacheKey);
-      const isExpired = this.isCacheExpired(cacheKey);
-      
-      if (cachedData && !isExpired && !forceRefresh) {
-        // Return cached data immediately
-        return JSON.parse(cachedData) as PlayerDetailsData;
+      // Check navigation cache first
+      if (!forceRefresh) {
+        const navCached = this.getNavigationCache<PlayerDetailsData>(sessionKey);
+        if (navCached) {
+          setTimeout(() => this.backgroundLiveCheck(), 100);
+          return navCached;
+        }
       }
-      
+
       // Fetch fresh data
       const response = await axios.get(`${API_CONFIG.baseUrl}?type=playerDetails&name=${encodeURIComponent(playerName)}`);
       const data = response.data as PlayerDetailsData;
       
-      // Cache the data with timestamp
-      localStorage.setItem(cacheKey, JSON.stringify(data));
-      localStorage.setItem(`${cacheKey}_timestamp`, Date.now().toString());
+      // Cache for navigation
+      this.setNavigationCache(sessionKey, data);
       
       return data;
     } catch (error) {
       console.error(`Error fetching player ${playerName}:`, error);
       
-      // Try to use cached data as fallback even if expired
-      const cachedData = localStorage.getItem(cacheKey);
+      // Try navigation cache as fallback
+      const navCached = this.getNavigationCache<PlayerDetailsData>(sessionKey);
+      if (navCached) return navCached;
+      
+      // Try old localStorage fallback
+      const cachedData = localStorage.getItem(`${PLAYER_PREFIX}${playerName}`);
       if (cachedData) {
         return JSON.parse(cachedData) as PlayerDetailsData;
       }
       
-      // Return empty data if nothing in cache
       return { matches: [], stats: {} };
     }
   },
-  
-  // Optimized background refresh for cached player details
-  async refreshCachedPlayerDetails(): Promise<void> {
-    // Find all player caches
-    const playerKeys = Object.keys(localStorage).filter(key => 
-      key.startsWith(PLAYER_PREFIX) && !key.includes("_timestamp")
-    );
+
+  // Enhanced fetchStatsData with navigation cache
+  async fetchStatsData(forceRefresh = false): Promise<{stats: Array<Array<string | number>>}> {
+    const sessionKey = 'stats';
     
-    // Only refresh a subset to avoid too many API calls
-    const MAX_REFRESH = 2; // Reduced from 3
-    const playerNames = playerKeys
-      .map(key => key.replace(PLAYER_PREFIX, ""))
-      .slice(0, MAX_REFRESH);
-    
-    // Refresh each player's data with some spacing
-    for (const playerName of playerNames) {
-      try {
-        await this.fetchPlayerDetails(playerName, true);
-        // Small delay to avoid rate limiting
-        await new Promise(resolve => setTimeout(resolve, 300));
-      } catch (error) {
-        console.error(`Error refreshing player ${playerName}:`, error);
-        // Continue with next player even if one fails
+    try {
+      // Check navigation cache first
+      if (!forceRefresh) {
+        const navCached = this.getNavigationCache<{stats: Array<Array<string | number>>}>(sessionKey);
+        if (navCached) {
+          setTimeout(() => this.backgroundLiveCheck(), 100);
+          return navCached;
+        }
       }
+
+      // Fetch fresh data
+      const response = await axios.get(`${API_CONFIG.baseUrl}?type=stats`);
+      const data = response.data;
+      
+      // Cache for navigation
+      this.setNavigationCache(sessionKey, data);
+      
+      return data;
+    } catch (error) {
+      console.error("Error fetching stats data:", error);
+      
+      // Try navigation cache as fallback
+      const navCached = this.getNavigationCache<{stats: Array<Array<string | number>>}>(sessionKey);
+      if (navCached) return navCached;
+      
+      // Try old localStorage fallback
+      const cachedData = localStorage.getItem('cricket_stats_data');
+      if (cachedData) {
+        return JSON.parse(cachedData);
+      }
+      
+      return { stats: [] };
     }
   },
-  
-  // Background fetch player details for all players - with improved throttling
+
+  // Smart image loading with retry
+  async loadPlayerImage(playerName: string, getPlayerImageFn: (params: { name: string; playerNameForImage: string }) => Promise<string>): Promise<string> {
+    // Check cache first
+    const cachedImage = this.getImageCache(playerName);
+    if (cachedImage) return cachedImage;
+
+    try {
+      // Load fresh image
+      const imageUrl = await getPlayerImageFn({ 
+        name: playerName, 
+        playerNameForImage: playerName 
+      });
+      
+      // Cache the image
+      this.setImageCache(playerName, imageUrl);
+      return imageUrl;
+    } catch (error) {
+      console.error(`Error loading image for ${playerName}:`, error);
+      
+      // Retry after 5 seconds
+      setTimeout(() => {
+        this.retryImageLoad(playerName, getPlayerImageFn);
+      }, 5000);
+      
+      return '/placeholder-image.png';
+    }
+  },
+
+  // Retry image loading
+  async retryImageLoad(playerName: string, getPlayerImageFn: (params: { name: string; playerNameForImage: string }) => Promise<string>): Promise<void> {
+    try {
+      const imageUrl = await getPlayerImageFn({ 
+        name: playerName, 
+        playerNameForImage: playerName 
+      });
+      this.setImageCache(playerName, imageUrl);
+      
+      // Notify components
+      updateEvents.dispatchEvent(new CustomEvent('image-loaded', { 
+        detail: { playerName, imageUrl } 
+      }));
+    } catch (error) {
+      console.error(`Retry failed for ${playerName}:`, error);
+    }
+  },
+
+  // Listen for image load events
+  onImageLoaded(callback: (detail: {playerName: string, imageUrl: string}) => void): () => void {
+    const eventListener = (event: CustomEvent) => callback(event.detail);
+    updateEvents.addEventListener('image-loaded', eventListener as EventListener);
+    return () => updateEvents.removeEventListener('image-loaded', eventListener as EventListener);
+  },
+
+  // Clear navigation cache only
+  clearNavigationCache(): void {
+    const sessionKeys = Object.keys(sessionStorage);
+    sessionKeys.forEach(key => {
+      if (key.startsWith(SESSION_PREFIX)) {
+        sessionStorage.removeItem(key);
+      }
+    });
+  },
+
+  // Keep your existing initBackgroundUpdater method (enhanced)
+  initBackgroundUpdater(): void {
+    if (updateCheckerInitialized) return;
+    
+    const checkForUpdatesAndRefresh = async () => {
+      try {
+        await this.backgroundLiveCheck();
+      } catch (error) {
+        console.error("Error in background update:", error);
+      }
+    };
+    
+    // Run after initial load
+    setTimeout(() => {
+      checkForUpdatesAndRefresh();
+    }, 3000);
+    
+    // Setup interval for live updates
+    setInterval(checkForUpdatesAndRefresh, UPDATE_CHECK_INTERVAL);
+    
+    updateCheckerInitialized = true;
+  },
+
+  // Enhanced refreshCachedPlayerDetails
+  async refreshCachedPlayerDetails(): Promise<void> {
+    // This now just clears navigation cache since we use live updates
+    this.clearNavigationCache();
+  },
+
+  // Enhanced prefetchAllPlayerDetails
   async prefetchAllPlayerDetails(playerNames: string[]): Promise<void> {
     if (!playerNames || playerNames.length === 0) return;
     
-    // We'll only prefetch a limited number of players to avoid slowing down the app
-    const MAX_PREFETCH = 3; // Reduced from 5
+    // Just prefetch a few for navigation cache
+    const MAX_PREFETCH = 3;
     const playersToPrefetch = playerNames.slice(0, MAX_PREFETCH);
     
-    // Use a small delay before starting to avoid competing with critical content
     await new Promise(resolve => setTimeout(resolve, 2500));
     
-    // Use a small delay between requests to avoid overwhelming the server
     for (const playerName of playersToPrefetch) {
       try {
-        const cacheKey = `${PLAYER_PREFIX}${playerName}`;
-        const isExpired = this.isCacheExpired(cacheKey);
+        const sessionKey = `player_${playerName}`;
+        const existing = this.getNavigationCache(sessionKey);
         
-        // Only fetch if not already cached or expired
-        if (!localStorage.getItem(cacheKey) || isExpired) {
+        if (!existing) {
           await this.fetchPlayerDetails(playerName);
-          // Small delay to avoid rate limiting
           await new Promise(resolve => setTimeout(resolve, 500));
         }
       } catch (error) {
         console.error(`Error prefetching player ${playerName}:`, error);
-        // Continue with next player even if one fails
       }
     }
   },
-  
-  // Clear all cache data
-  clearCache(): void {
-    // Clear known keys
+
+  // Force update method (clears navigation cache, forces fresh data)
+  forceUpdate(): void {
+    this.clearNavigationCache();
+    localStorage.removeItem(METADATA_KEY);
+    lastLiveCheck = 0;
+    updateEvents.dispatchEvent(new Event(UPDATE_EVENT));
+  },
+
+  // Refresh method (clear all caches except images)
+  refresh(): void {
+    this.clearNavigationCache();
+    
+    // Clear old localStorage data cache (keep images)
     localStorage.removeItem(METADATA_KEY);
     localStorage.removeItem(SUMMARY_KEY);
     localStorage.removeItem(PLAYERS_KEY);
     localStorage.removeItem(LAST_CHECK_KEY);
-    
-    // Clear timestamps
     localStorage.removeItem(`${SUMMARY_KEY}_timestamp`);
     localStorage.removeItem(`${PLAYERS_KEY}_timestamp`);
     
-    // Clear player-specific caches
+    // Clear player-specific caches (except images)
     const playerKeys = Object.keys(localStorage).filter(key => 
-      key.startsWith(PLAYER_PREFIX)
+      key.startsWith(PLAYER_PREFIX) && !key.includes('player_image_')
     );
     
     playerKeys.forEach(key => {
       localStorage.removeItem(key);
       localStorage.removeItem(`${key}_timestamp`);
     });
+    
+    lastLiveCheck = 0;
+    updateEvents.dispatchEvent(new Event(UPDATE_EVENT));
+  },
+
+  // Keep your existing clearCache method
+  clearCache(): void {
+    this.refresh();
+  },
+
+  // Initialize the enhanced cache system
+  init(): void {
+    if (updateCheckerInitialized) return;
+    
+    // Clear very old navigation cache on app start
+    const lastActivity = localStorage.getItem('last_activity_timestamp');
+    const currentTime = Date.now();
+    
+    if (lastActivity) {
+      const timeSinceLastActivity = currentTime - parseInt(lastActivity, 10);
+      if (timeSinceLastActivity > 24 * 60 * 60 * 1000) { // 24 hours
+        this.refresh();
+      }
+    }
+    
+    localStorage.setItem('last_activity_timestamp', currentTime.toString());
+    this.initBackgroundUpdater();
   }
 };

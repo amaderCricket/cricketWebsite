@@ -24,7 +24,8 @@ import Preloader from './components/common/PreLoader'
 
 
 function App() {
- 
+
+cacheService.init();
   
 useEffect(() => {
   themeService.initializeTheme();
