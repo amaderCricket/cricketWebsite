@@ -1,169 +1,66 @@
 // src/components/home/LastMatchCard.tsx
-import { useEffect, useState, useMemo, memo } from 'react';
+import { useEffect, useState, useMemo, memo, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
-import { cacheService } from '../../services/cacheService';
-// import { API_CONFIG } from '../../config/apiConfig';
+import { API_CONFIG } from '../../config/apiConfig';
 
-// Enhanced interface to include individual stats
-interface PlayerWithImage extends PlayerTeamInfo {
-  imageUrl: string;
+// Enhanced interfaces for recent matches data
+interface PlayerStats {
+  playerName: string;
   runsScored?: number | string;
   ballsFaced?: number | string;
   dismissals?: number | string;
   runsGiven?: number | string;
   ballsBowled?: number | string;
   wicketsTaken?: number | string;
+  isManOfMatch?: boolean;
+  imageUrl: string;
 }
 
-//  const testRecentMatchesData = async () => {
-//   try{
-//     console.log('Fetching recent matches data...');
-    
-//     const response = await fetch(`${API_CONFIG.baseUrl}?type=recentmatches`);
-//     const data = await response.json();
-    
-//     console.log('Recent Matches Data:', data);
-//     console.log('Metadata:', data._metadata);
-//     console.log('Stats array length:', data.stats?.length);
-    
-//     if (!data.stats || !Array.isArray(data.stats)) {
-//       console.error('No stats array found');
-//       return;
-//     }
-    
-//     // Find header rows (they contain "Match No" in first column)
-//     const headerRows: number[] = [];
-//     interface StatsRow extends Array<string | number> {
-//       [index: number]: string | number;
-//     }
+interface TeamData {
+  teamName: string;
+  score: string;
+  result: 'Won' | 'Lost';
+  players: PlayerStats[];
+}
 
-//     data.stats.forEach((row: StatsRow, index: number) => {
-//       if (row[0] === "Match No") {
-//         headerRows.push(index);
-//       }
-//     });
-    
-//     console.log('Found header rows at indices:', headerRows);
-    
-//     // Extract and log each match
-//     console.log('\n=== EXTRACTED MATCHES ===');
-    
-//     headerRows.forEach((headerIndex, matchIndex) => {
-//       console.log(`\n--- MATCH ${matchIndex + 1} (Starting at row ${headerIndex}) ---`);
-      
-//       // Get the data rows after this header (until next header or end)
-//       const nextHeaderIndex = headerRows[matchIndex + 1] || data.stats.length;
-//       const matchRows = data.stats.slice(headerIndex, nextHeaderIndex);
-      
-//       console.log('Match rows:', matchRows);
-      
-//       // Extract match info
-//       const header = matchRows[0];
-//       const firstDataRow = matchRows[1];
-      
-//       if (!firstDataRow) {
-//         console.log('No data row found for this match');
-//         return;
-//       }
-      
-//       interface MatchPlayer {
-//         name: string | number;
-//         runs: string | number;
-//         wickets: string | number;
-//       }
+interface MatchData {
+  matchNo: number;
+  teamA: TeamData;
+  teamB: TeamData;
+  mom: string;
+  result: string;
+}
 
-//       const matchInfo = {
-//         matchNo: firstDataRow[0],
-//         teamA: {
-//           name: firstDataRow[1],
-//           total: firstDataRow[5],
-//           players: [] as MatchPlayer[]
-//         },
-//         teamB: {
-//           name: firstDataRow[6], 
-//           total: firstDataRow[10],
-//           players: [] as MatchPlayer[]
-//         },
-//         mom: firstDataRow[11],
-//         result: firstDataRow[12]
-//       };
-      
-//       // Extract players from all data rows
-//       for (let i = 1; i < matchRows.length; i++) {
-//         const row = matchRows[i];
-        
-//         // Skip empty rows or rows with #N/A
-//         if (!row[2] || row[2] === "#N/A" || row[2] === "") continue;
-        
-//         // Team A player
-//         if (row[2]) {
-//           matchInfo.teamA.players.push({
-//             name: row[2],
-//             runs: row[3],
-//             wickets: row[4]
-//           });
-//         }
-        
-//         // Team B player  
-//         if (row[7]) {
-//           matchInfo.teamB.players.push({
-//             name: row[7],
-//             runs: row[8],
-//             wickets: row[9] 
-//           });
-//         }
-//       }
-      
-//       console.log('Extracted Match Info:', matchInfo);
-      
-//       // Log formatted match summary
-//       console.log(`📊 Match ${matchInfo.matchNo}: ${matchInfo.teamA.name} vs ${matchInfo.teamB.name}`);
-//       console.log(`🏆 Result: ${matchInfo.result}`);
-//       console.log(`⭐ MoM: ${matchInfo.mom}`);
-//       console.log(`📈 Team A (${matchInfo.teamA.name}): ${matchInfo.teamA.total}`);
-//       matchInfo.teamA.players.forEach(player => {
-//         console.log(`   - ${player.name}: ${player.runs}, ${player.wickets}`);
-//       });
-//       console.log(`📈 Team B (${matchInfo.teamB.name}): ${matchInfo.teamB.total}`);
-//       matchInfo.teamB.players.forEach(player => {
-//         console.log(`   - ${player.name}: ${player.runs}, ${player.wickets}`);
-//       });
-//     });
-    
-//     return data;
-//   } catch (error) {
-//     console.error('Error fetching recent matches:', error);
-//   }
-// };
+interface PlayerWithImage extends PlayerStats {
+  imageUrl: string;
+}
 
-
-// Format player stats into a readable string
+// Format player stats for display
 const formatPlayerStats = (player: PlayerWithImage): string => {
   let stats = '';
   
-  // Batting stats
-  if (player.runsScored !== undefined && player.ballsFaced !== undefined) {
-    // Add asterisk for not out
-    const notOut = player.dismissals === 0 || player.dismissals === '0';
-    stats += `${player.runsScored}${notOut ? '*' : ''}(${player.ballsFaced})`;
+  // Batting stats first
+  if (player.runsScored !== undefined && player.runsScored !== '') {
+    stats += `${player.runsScored}`;
+    // Add not out indicator if needed
+    if (player.dismissals === '' || player.dismissals === undefined || player.dismissals === 0) {
+      stats += '*';
+    }
+    stats += `(${player.ballsFaced || 0})`;
   }
   
   // Bowling stats - only add if wickets were taken
-  if (player.wicketsTaken !== undefined && 
-      Number(player.wicketsTaken) > 0) {
-    // Add separator if we already have batting stats
-    if (stats) stats += ' ';
-    stats += `/ W (${player.wicketsTaken})`;
+  if (player.wicketsTaken !== undefined && Number(player.wicketsTaken) > 0) {
+    if (stats) stats += ', ';
+    stats += `${player.wicketsTaken}-${player.runsGiven}`;
   }
   
   return stats;
 };
 
-// Memoized player item component to prevent re-renders
+// Memoized player item component
 const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => {
-  // Format the player stats
   const statsString = formatPlayerStats(player);
   
   return (
@@ -195,310 +92,431 @@ const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => {
 PlayerItem.displayName = 'PlayerItem';
 
 function LastMatchCard() {
-  const [matchData, setMatchData] = useState<LastMatchInfo | null>(null);
+  const [matches, setMatches] = useState<MatchData[]>([]);
   const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false); // Changed to false initially
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  
-  // Memoize player lists with enhanced stats
-  const { winnerPlayers, loserPlayers } = useMemo(() => {
-    if (!matchData || !matchData.players) {
-      return { winnerPlayers: [], loserPlayers: [] };
-    }
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+
+  // FIX 2: Add navigation timeout ref for debouncing
+  const navigationTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Fetch recent matches data
+  const fetchRecentMatches = useCallback(async (forceRefresh = false) => {
+    if (!forceRefresh && isRefreshing) return;
     
-    const winner = matchData.teams.find(team => team.result === 'Won');
-    const loser = matchData.teams.find(team => team.result === 'Lost');
-    
-    if (!winner || !loser) {
-      return { winnerPlayers: [], loserPlayers: [] };
-    }
-    
-    // Create enhanced player objects with stats and image URLs
-    const playersWithImgs = matchData.players.map((player): PlayerWithImage => ({
-      ...player,
-      imageUrl: playerImages[player.playerName] || '/src/assets/players/blank_image.png',
-      runsScored: player.runsScored,
-      ballsFaced: player.ballsFaced,
-      dismissals: player.dismissals,
-      runsGiven: player.runsGiven,
-      ballsBowled: player.ballsBowled,
-      wicketsTaken: player.wicketsTaken
-    }));
-    
-    const winnerPlayersList = playersWithImgs.filter(player => 
-      player.teams.includes(winner.teamName)
-    );
-    
-    const loserPlayersList = playersWithImgs.filter(player => 
-      player.teams.includes(loser.teamName)
-    );
-       
-    return {
-      winnerPlayers: winnerPlayersList,
-      loserPlayers: loserPlayersList
-    };
-  }, [matchData, playerImages]);
-  
-  // Load match data
-  useEffect(() => {
-    // testRecentMatchesData();
-    // Get cached data immediately (don't set loading state)
-    const loadCachedData = () => {
-      const cachedDataString = localStorage.getItem('cached_last_match');
-      if (cachedDataString) {
-        try {
-          const cachedData = JSON.parse(cachedDataString);
-          setMatchData(cachedData);
-          return true;
-        } catch (e) {
-          console.error('Error parsing cached data:', e);
-          return false;
-        }
-      }
-      return false;
-    };
-    
-    // Try to load cached data first
-    const hasCachedData = loadCachedData();
-    
-    // Then fetch fresh data in background without showing loading state
-    const loadFreshData = async () => {
-      try {
-        // Only show loading state if we don't have cached data
-        if (!hasCachedData) {
-          setIsLoading(true);
-        }
-        
-        const data = await fetchLastMatchData(true);
-        
-        if (data) {
-          localStorage.setItem('cached_last_match', JSON.stringify(data));
-          setMatchData(data);
-          setError(null);
-        } else if (!hasCachedData) {
-          // Only show error if we don't have cached data
-          setError('No match data available');
-        }
-      } catch (err) {
-        console.error('Error loading fresh match data:', err);
-        if (!hasCachedData) {
-          // Only show error if we don't have cached data
-          setError('Failed to load match data');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadFreshData();
-    
-    // Set up interval to periodically check for updates without showing loading state
-    const refreshInterval = setInterval(() => {
-      fetchLastMatchData(true)
-        .then(freshData => {
-          if (freshData) {
-            localStorage.setItem('cached_last_match', JSON.stringify(freshData));
-            setMatchData(freshData);
-          }
-        })
-        .catch(err => {
-          console.error('Error in periodic refresh:', err);
-          // Don't update UI on background refresh errors
-        });
-    }, 5 * 60 * 1000); // Check every 5 minutes
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, []);
-  
-  // Load player images separately with lower priority
-  useEffect(() => {
-    if (!matchData || !matchData.players) return;
-    
-    const loadPlayerImages = async () => {
-      for (let i = 0; i < matchData.players.length; i++) {
-        const player = matchData.players[i];
-        
-        try {
-          // USE NEW METHOD:
-         const imageUrl = await cacheService.loadPlayerImage(player.playerName, getPlayerImage);
-          
-          setPlayerImages(prev => ({ 
-            ...prev, 
-            [player.playerName]: imageUrl 
-          }));
-          
-        } catch (error) {
-          console.error(`Error loading image:`, error);
-        }
-      }
-    };
-    
-    // Start loading images after a short delay
-    const timer = setTimeout(() => {
-      loadPlayerImages();
-    }, 200);
-    
-    return () => clearTimeout(timer);
-  }, [matchData]);
-  
-  // Manual refresh function for refresh button
-  const handleRefresh = async () => {
     try {
-      setIsRefreshing(true); // Show small indicator only for manual refresh
-      const data = await fetchLastMatchData(true);
+      console.log('🔄 Starting fetchRecentMatches, forceRefresh:', forceRefresh);
+      setIsRefreshing(true);
+      setError(null);
       
-      if (data) {
-        localStorage.setItem('cached_last_match', JSON.stringify(data));
-        setMatchData(data);
-        setError(null);
-      } else {
-        setError('No match data available');
+      const response = await fetch(`${API_CONFIG.baseUrl}?type=recentmatches`);
+      console.log('📡 API Response status:', response.status);
+      
+      const data = await response.json();
+      console.log('📊 Raw API Response:', data);
+      console.log('📈 Data keys available:', Object.keys(data));
+      
+      if (!data.stats || !Array.isArray(data.stats)) {
+        console.error('❌ No stats array found. Data structure:', data);
+        throw new Error('No stats array found in response');
       }
+
+      console.log('📋 Stats array length:', data.stats.length);
+      console.log('📋 First few rows:', data.stats.slice(0, 5));
+
+      // Find header rows (they contain "Match No" in first column)
+      const headerRows: number[] = [];
+      data.stats.forEach((row: unknown[], index: number) => {
+        if (row[0] === "Match No") {
+          headerRows.push(index);
+          console.log(`🎯 Found "Match No" header at row ${index}:`, row);
+        }
+      });
+
+      console.log('📍 Header rows found at indices:', headerRows);
+
+      if (headerRows.length === 0) {
+        console.warn('⚠️ No "Match No" headers found. Searching for alternative patterns...');
+        // Try to find any row that might be a match header
+        data.stats.forEach((row: unknown[], index: number) => {
+          if (row && row.length > 0) {
+            console.log(`Row ${index}:`, row.slice(0, 3));
+          }
+        });
+      }
+
+      const extractedMatches: MatchData[] = [];
+
+      // Extract each match (limit to 5 most recent)
+      for (let i = 0; i < Math.min(headerRows.length, 5); i++) {
+        const headerIndex = headerRows[i];
+        const nextHeaderIndex = headerRows[i + 1] || data.stats.length;
+        const matchRows = data.stats.slice(headerIndex, nextHeaderIndex);
+        
+        console.log(`🏏 Processing Match ${i + 1} (rows ${headerIndex} to ${nextHeaderIndex}):`);
+        console.log('Match rows length:', matchRows.length);
+        console.log('First 3 match rows:', matchRows.slice(0, 3));
+        
+        if (matchRows.length < 2) {
+          console.warn(`⚠️ Skipping match ${i + 1} - insufficient rows`);
+          continue;
+        }
+
+        // Extract match info from the data rows
+        const matchInfo = extractMatchInfo(matchRows);
+        console.log(`🎯 Extracted match info for Match ${i + 1}:`, matchInfo);
+        
+        if (matchInfo) {
+          extractedMatches.push(matchInfo);
+        } else {
+          console.warn(`⚠️ Failed to extract match info for Match ${i + 1}`);
+        }
+      }
+
+      console.log('✅ Total matches extracted:', extractedMatches.length);
+      console.log('📋 Extracted matches:', extractedMatches);
+
+      setMatches(extractedMatches);
+      
+      // Load player images for all players using the correct format
+      const allPlayers = extractedMatches.flatMap(match => [
+        ...match.teamA.players,
+        ...match.teamB.players
+      ]);
+      
+      console.log('👥 Loading images for players:', allPlayers.map(p => p.playerName));
+      
+      // Use the same pattern as other components in the project
+      const imagePromises = allPlayers.map(async (player) => {
+        const imageUrl = await getPlayerImage({ 
+          name: player.playerName, 
+          playerNameForImage: player.playerName 
+        });
+        return { name: player.playerName, url: imageUrl };
+      });
+      
+      const imageResults = await Promise.all(imagePromises);
+      const imageMap: Record<string, string> = {};
+      imageResults.forEach(({ name, url }) => {
+        imageMap[name] = url;
+      });
+      
+      console.log('🖼️ Player images loaded:', Object.keys(imageMap));
+      setPlayerImages(imageMap);
+
     } catch (err) {
-      console.error('Error refreshing match data:', err);
-      setError('Failed to refresh match data');
+      console.error('❌ Error fetching recent matches:', err);
+      setError(err instanceof Error ? err.message : 'Failed to load match data');
     } finally {
+      setIsLoading(false);
       setIsRefreshing(false);
     }
-  };
-  
-  // Format date
-  const formatDate = (dateString: string) => {
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Extract match information from raw data rows
+  const extractMatchInfo = (matchRows: unknown[][]): MatchData | null => {
     try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
+      console.log('🔍 Starting extractMatchInfo with rows:', matchRows.length);
+      console.log('🔍 First 5 rows for debugging:', matchRows.slice(0, 5));
+      
+      // Get match number from row 1 (since row 0 is header)
+      const headerRow = matchRows[0];
+      const dataRow = matchRows[1];
+      console.log('📋 Header row:', headerRow);
+      console.log('📊 Data row:', dataRow);
+      
+      const matchNo = dataRow ? dataRow[0] : 0;
+      console.log('🎯 Extracted match number:', matchNo);
+
+      // Extract team names from the actual team values, not the header
+      // From your screenshot: Row 1 has "Abrar" in column B and "Shipun" in column G
+      const teamAName = dataRow[1] || 'Team A';  // Actual team name from data row
+      const teamBName = dataRow[6] || 'Team B';  // Actual team name from data row
+      
+      console.log('👥 Team names from data - A:', teamAName, 'B:', teamBName);
+
+      // Extract players and their stats
+      const teamAPlayers: PlayerStats[] = [];
+      const teamBPlayers: PlayerStats[] = [];
+      
+      let mom = '';
+      let result = '';
+
+      // Process data rows (skip header row)
+      for (let i = 1; i < matchRows.length; i++) {
+        const row = matchRows[i];
+        if (!row || row.length === 0) continue;
+
+        console.log(`Row ${i}:`, row);
+
+        // Get MoM from column L (index 11)
+        if (i === 1 && row[11]) { // MoM is usually in the first data row
+          mom = String(row[11]);
+          console.log('⭐ Man of the Match found:', mom);
+        }
+
+        // Get result from column M (index 12) 
+        if (i === 1 && row[12]) { // Result is usually in the first data row
+          result = String(row[12]);
+          console.log('🏆 Result found:', result);
+        }
+
+        // Extract Team A player data (columns B, C, D, E)
+        // GENERALIZED: Extract from ALL rows including first data row
+        if (i >= 1 && row[2] && typeof row[2] === 'string' && row[2].trim() !== '' && row[2] !== 'Player Name' && row[2] !== '#N/A') {
+          const playerName = row[2].trim();
+          console.log(`🔍 Team A - Row ${i}, Column C: "${playerName}"`);
+          const player: PlayerStats = {
+            playerName,
+            runsScored: row[3] ? String(row[3]) : '',
+            ballsFaced: '', // Not available in this format
+            dismissals: '',
+            runsGiven: '',
+            ballsBowled: '',
+            wicketsTaken: row[4] ? String(row[4]) : '',
+            isManOfMatch: playerName === mom,
+            imageUrl: ''
+          };
+
+          console.log(`👤 Added Team A player:`, player);
+          teamAPlayers.push(player);
+        }
+
+        // Extract Team B player data (columns G, H, I, J)
+        // GENERALIZED: Extract from ALL rows including first data row
+        if (i >= 1 && row[7] && typeof row[7] === 'string' && row[7].trim() !== '' && row[7] !== 'Player Name' && row[7] !== '#N/A') {
+          const playerName = row[7].trim();
+          console.log(`🔍 Team B - Row ${i}, Column H: "${playerName}"`);
+          const player: PlayerStats = {
+            playerName,
+            runsScored: row[8] ? String(row[8]) : '',
+            ballsFaced: '', // Not available in this format
+            dismissals: '',
+            runsGiven: '',
+            ballsBowled: '',
+            wicketsTaken: row[9] ? String(row[9]) : '',
+            isManOfMatch: playerName === mom,
+            imageUrl: ''
+          };
+
+          console.log(`👤 Added Team B player:`, player);
+          teamBPlayers.push(player);
+        }
       }
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
+
+      console.log('👥 Team A players:', teamAPlayers.length, teamAPlayers);
+      console.log('👥 Team B players:', teamBPlayers.length, teamBPlayers);
+
+      // Determine winner and scores from result
+      let teamAResult: 'Won' | 'Lost' = 'Lost';
+      let teamBResult: 'Won' | 'Lost' = 'Lost';
+      
+      // Get team totals from first data row (columns F and K)
+      const teamAScore = String(dataRow[5] || '0/0'); // Column F (Team Total)
+      const teamBScore = String(dataRow[10] || '0/0'); // Column K (Team Total)
+
+      if (result && result.toLowerCase().includes(String(teamAName).toLowerCase())) {
+        teamAResult = 'Won';
+        teamBResult = 'Lost';
+      } else if (result && result.toLowerCase().includes(String(teamBName).toLowerCase())) {
+        teamAResult = 'Lost';
+        teamBResult = 'Won';
+      }
+
+      console.log('🏆 Results - Team A:', teamAResult, 'Team B:', teamBResult);
+      console.log('📊 Scores - Team A:', teamAScore, 'Team B:', teamBScore);
+
+      const finalMatch = {
+        matchNo: Number(matchNo) || 0,
+        teamA: {
+          teamName: String(teamAName),
+          score: teamAScore,
+          result: teamAResult,
+          players: teamAPlayers
+        },
+        teamB: {
+          teamName: String(teamBName),
+          score: teamBScore,
+          result: teamBResult,
+          players: teamBPlayers
+        },
+        mom,
+        result
+      };
+
+      console.log('✅ Final extracted match:', finalMatch);
+      return finalMatch;
+
+    } catch (error) {
+      console.error('❌ Error extracting match info:', error);
+      return null;
     }
   };
 
-  // Calculate run difference
-  const calculateRunDifference = (winnerScore: string, loserScore: string): number => {
-    try {
-      const winnerRuns = parseInt(winnerScore.split('/')[0]);
-      const loserRuns = parseInt(loserScore.split('/')[0]);
-      return winnerRuns - loserRuns;
-    } catch {
-      return 0;
+  // FIX 2: Add debounced navigation function
+  const debouncedSetIndex = useCallback((newIndex: number) => {
+    if (navigationTimeoutRef.current) {
+      clearTimeout(navigationTimeoutRef.current);
     }
-  };
-  
-  // If we have an error and no data, show error state
-  if ((error && !matchData) || (!matchData && !isLoading)) {
+    
+    navigationTimeoutRef.current = setTimeout(() => {
+      setCurrentMatchIndex(newIndex);
+    }, 50);
+  }, []);
+    // FIX 1: Pre-compute all matches with images (replaces the heavy currentMatch useMemo)
+  const enhancedMatches = useMemo(() => {
+    if (!matches.length || !Object.keys(playerImages).length) return [];
+    
+    return matches.map(match => ({
+      ...match,
+      teamA: {
+        ...match.teamA,
+        players: match.teamA.players.map(player => ({
+          ...player,
+          imageUrl: playerImages[player.playerName] || '/default-avatar.png'
+        }))
+      },
+      teamB: {
+        ...match.teamB,
+        players: match.teamB.players.map(player => ({
+          ...player,
+          imageUrl: playerImages[player.playerName] || '/default-avatar.png'
+        }))
+      }
+    }));
+  }, [matches, playerImages]); // Only recalculates when data changes, NOT on navigation
+
+  // FIX 2: Update navigation controls to use debouncing
+  const goToNextMatch = useCallback(() => {
+    if (enhancedMatches.length <= 1) return;
+    const newIndex = currentMatchIndex === enhancedMatches.length - 1 ? 0 : currentMatchIndex + 1;
+    debouncedSetIndex(newIndex);
+  }, [currentMatchIndex, enhancedMatches.length, debouncedSetIndex]);
+
+  const goToPrevMatch = useCallback(() => {
+    if (enhancedMatches.length <= 1) return;
+    const newIndex = currentMatchIndex === 0 ? enhancedMatches.length - 1 : currentMatchIndex - 1;
+    debouncedSetIndex(newIndex);
+  }, [currentMatchIndex, enhancedMatches.length, debouncedSetIndex]);
+
+  // Navigate to specific match - SIMPLIFIED
+  const goToMatch = useCallback((index: number) => {
+    if (index >= 0 && index < enhancedMatches.length) {
+      debouncedSetIndex(index);
+    }
+  }, [enhancedMatches.length, debouncedSetIndex]);
+
+  // FIX 3: Update useEffect to include cleanup
+  useEffect(() => {
+    console.log('🚀 Component mounted, fetching initial data...');
+    fetchRecentMatches(true);
+    
+    // Cleanup navigation timeout on unmount
+    return () => {
+      if (navigationTimeoutRef.current) {
+        clearTimeout(navigationTimeoutRef.current);
+      }
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Empty dependency array - only run once on mount
+
+ 
+
+
+
+  // FIX 1: Simple access to current match (no heavy computation)
+  const currentMatch = enhancedMatches[currentMatchIndex] || null;
+
+  // Error state
+  if (error && matches.length === 0) {
     return (
       <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
+        <h2 className="section-title">Recent Matches</h2>
         <div className="last-match-error">
-          <p>{error || 'No match data available'}</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--primaryColor)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isRefreshing ? 'Refreshing...' : 'Try Again'}
-          </button>
+          <p>Error loading match data: {error}</p>
+
         </div>
       </section>
     );
   }
-  
-  // No data yet, but we're loading - show minimal UI
-  if (!matchData && isLoading) {
+
+  // Loading state
+  if (isLoading && matches.length === 0) {
     return (
       <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
+        <h2 className="section-title">Recent Matches</h2>
         <div className="last-match-card" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <p style={{ color: 'var(--textSecondary)', fontStyle: 'italic' }}>Loading match information...</p>
         </div>
       </section>
     );
   }
-  
-  // We have data, render normally
-  const winner = matchData?.teams.find(team => team.result === 'Won');
-  const loser = matchData?.teams.find(team => team.result === 'Lost');
-  
-  if (!winner || !loser) {
+
+  if (!currentMatch) {
     return (
       <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
-        <div className="last-match-error">
-          <p>Invalid match data</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--primaryColor)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-          </button>
+        <h2 className="section-title">Recent Matches</h2>
+        <div className="last-match-card" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <p style={{ color: 'var(--textSecondary)', fontStyle: 'italic' }}>No match data available</p>
         </div>
       </section>
     );
   }
-  
+
+  const winner = currentMatch.teamA.result === 'Won' ? currentMatch.teamA : currentMatch.teamB;
+  const loser = currentMatch.teamA.result === 'Lost' ? currentMatch.teamA : currentMatch.teamB;
+
   return (
     <section className="last-match-section">
       <h2 className="section-title">
-        Last Match
-        <button 
-          onClick={handleRefresh}
-          className="refresh-icon"
-          title="Refresh match data"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            marginLeft: '0.5rem',
-            padding: '0.25rem',
-            color: 'var(--primaryColor)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1rem'
-          }}
-        >
-          <i className="material-icons" style={{ 
-            fontSize: '1.25rem', 
-            animation: isRefreshing ? 'spin 1s linear infinite' : 'none' 
-          }}>
-            {isRefreshing ? 'sync' : 'refresh'}
-          </i>
-        </button>
+        Recent Matches
+
       </h2>
+
+      <div className="match-navigation">
+        {/* Previous button */}
+        <button 
+          onClick={goToPrevMatch}
+          className="nav-button prev"
+          disabled={matches.length <= 1}
+          title="Previous match"
+        >
+          <i className="material-icons">chevron_left</i>
+        </button>
+
+        {/* Match indicators */}
+        {matches.length > 1 && (
+          <div className="match-indicators">
+            {matches.map((_, index) => (
+              <button
+                key={index}
+                className={`indicator ${index === currentMatchIndex ? 'active' : ''}`}
+                onClick={() => goToMatch(index)}
+                title={`Match ${matches[index]?.matchNo || index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Next button */}
+        <button 
+          onClick={goToNextMatch}
+          className="nav-button next"
+          disabled={matches.length <= 1}
+          title="Next match"
+        >
+          <i className="material-icons">chevron_right</i>
+        </button>
+      </div>
       
       <div className="last-match-card">
-        {/* Match date */}
+        {/* Match info header */}
         <div className="match-date-header">
-          <span className="date-label">Played on</span>
-          <span className="date-value">{matchData ? formatDate(matchData.date) : 'N/A'}</span>
+          <span className="date-label">Match #{currentMatch.matchNo}</span>
+          <span className="date-value">{currentMatch.result}</span>
         </div>
         
         {/* Teams container */}
@@ -520,8 +538,8 @@ function LastMatchCard() {
             <div className="team-players">
               <h4>Players</h4>
               <ul>
-                {winnerPlayers.map((player) => (
-                  <PlayerItem key={player.playerName} player={player} />
+                {winner.players.map((player) => (
+                  <PlayerItem key={player.playerName} player={player as PlayerWithImage} />
                 ))}
               </ul>
             </div>
@@ -548,8 +566,8 @@ function LastMatchCard() {
             <div className="team-players">
               <h4>Players</h4>
               <ul>
-                {loserPlayers.map((player) => (
-                  <PlayerItem key={player.playerName} player={player} />
+                {loser.players.map((player) => (
+                  <PlayerItem key={player.playerName} player={player as PlayerWithImage} />
                 ))}
               </ul>
             </div>
@@ -559,16 +577,92 @@ function LastMatchCard() {
         {/* Match summary */}
         <div className="match-summary">
           <p>
-            <strong>{winner.teamName}</strong> won by{' '}
-            <strong>{calculateRunDifference(winner.score, loser.score)} runs</strong>
+            <strong>{currentMatch.mom}</strong> was the Man of the Match
           </p>
         </div>
       </div>
       
-      <style >{`
+      <style>{`
         @keyframes spin {
           0% { transform: rotate(0deg); }
           100% { transform: rotate(360deg); }
+        }
+
+        .match-navigation {
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          gap: 1rem;
+          margin-bottom: 2rem;
+        }
+
+        .nav-button {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 40px;
+          height: 40px;
+          border: 2px solid var(--borderColor);
+          background: var(--surfaceColor);
+          border-radius: 50%;
+          cursor: pointer;
+          transition: background-color 0.2s ease, border-color 0.2s ease;
+          color: var(--textPrimary);
+        }
+
+        .nav-button:hover:not(:disabled) {
+          border-color: var(--primaryColor);
+          background: var(--primaryColor);
+          color: white;
+        }
+
+        .nav-button:disabled {
+          opacity: 0.5;
+          cursor: not-allowed;
+        }
+
+        [data-theme="dark"] .nav-button {
+          border-color: var(--borderColor);
+          background: var(--backgroundColor);
+        }
+
+        [data-theme="dark"] .nav-button:hover:not(:disabled) {
+          border-color: var(--accentColor);
+          background: var(--accentColor);
+        }
+
+        .match-indicators {
+          display: flex;
+          justify-content: center;
+          gap: 0.5rem;
+        }
+
+        .match-indicators .indicator {
+          width: 12px;
+          height: 12px;
+          border-radius: 50%;
+          border: 2px solid var(--borderColor);
+          background: transparent;
+          cursor: pointer;
+          transition: background-color 0.2s ease, border-color 0.2s ease;
+        }
+
+        .match-indicators .indicator.active {
+          background: var(--primaryColor);
+          border-color: var(--primaryColor);
+        }
+
+        .match-indicators .indicator:hover {
+          border-color: var(--primaryColor);
+        }
+
+        [data-theme="dark"] .match-indicators .indicator.active {
+          background: var(--accentColor);
+          border-color: var(--accentColor);
+        }
+
+        [data-theme="dark"] .match-indicators .indicator:hover {
+          border-color: var(--accentColor);
         }
       `}</style>
     </section>

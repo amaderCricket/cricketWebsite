@@ -46,9 +46,10 @@
   
   .date-label {
     display: block;
-    font-size: 0.875rem;
+    font-size: 1.5rem;
     color: var(--textSecondary);
-    font-family: var(--fontMono);
+    font-family: var(--fontTitle);
+    color: var(--accentColor);
     margin-bottom: 0.25rem;
   }
   

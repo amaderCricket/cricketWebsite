@@ -22,29 +22,46 @@ export const useDataFetcher = (): UseDataFetcherResult => {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<Error | null>(null);
 
-  const fetchData = useCallback(async (forceRefresh = false): Promise<void> => {
-    try {
-       if (!data && !forceRefresh) {
+const fetchData = useCallback(async (forceRefresh = false): Promise<void> => {
+  try {
+    // Check for cached data first (instant)
+    if (!forceRefresh) {
+      const cachedData = localStorage.getItem('cricket_data_summary');
+      if (cachedData) {
+        try {
+          const parsed = JSON.parse(cachedData);
+          setData(parsed);
+          setLoading(false);
+          // Don't return - still fetch fresh data in background
+        } catch (e) {
+          console.error('Error parsing cached summary data:', e);
+        }
+      }
+    }
+
+    // Only show loading if we don't have any data yet
+    if (!data && !forceRefresh) {
       setLoading(true);
     }
-      // Use cacheService instead of direct API call
-      const result = await cacheService.fetchSummaryData(forceRefresh);
-      // console.log('Summary data loaded');
-      setData(result);
-      setLoading(false);
-    } catch (err) {
-      // Convert unknown error to Error object
-      const errorMessage = err instanceof Error ? err : new Error('An unknown error occurred');
-      setError(errorMessage);
-      setLoading(false);
-      console.error('Error in data fetcher hook:', err);
+    
+    // Fetch fresh data
+    const result = await cacheService.fetchSummaryData(forceRefresh);
+    setData(result);
+    setError(null);
+    
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err : new Error('An unknown error occurred');
+    setError(errorMessage);
+    console.error('Error in data fetcher hook:', err);
+    
+    // If we have cached data, don't show error
+    if (data) {
+      setError(null);
     }
-    finally {
-    // Only hide loading if it was shown
-    if (!data && !forceRefresh) {
-      setLoading(false);
-    }
-  }}, [data]);
+  } finally {
+    setLoading(false);
+  }
+}, [data]);
 
   // Load data initially
   useEffect(() => {

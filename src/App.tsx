@@ -12,8 +12,8 @@ import Stats from './pages/Stats'
 import { themeService } from './services/themeService'
 import { fontService } from './services/fontService'
 
-import { prefetchMatchData } from './services/matchDataService'
-import {cacheService} from './services/cacheService'
+import { cacheService } from './services/cacheService'
+import { useCacheInitializer } from './hooks/useCacheInitializer'
 
 import Header from './components/common/Header'
 import Footer from './components/common/Footer'
@@ -22,75 +22,52 @@ import GoToTop from './components/common/GoToTop'
 import './App.scss'
 import Preloader from './components/common/PreLoader'
 
-
 function App() {
+  // Initialize cache and get loading state
+  const { isInitialized, isUpdating } = useCacheInitializer();
 
-cacheService.init();
+  cacheService.init();
   
-useEffect(() => {
-  themeService.initializeTheme();
-  fontService.initializeFonts();
+  useEffect(() => {
+    themeService.initializeTheme();
+    fontService.initializeFonts();
 
-  prefetchMatchData().catch(err => {
-    console.error('Error prefetching match data:', err);
-  });
-  
-  // Add this new code to preload top player images
-  const preloadTopPlayerImages = async () => {
-    try {
-      // Fetch players data
-      const playersData = await cacheService.fetchPlayers();
-      
-      if (playersData && playersData.stats && Array.isArray(playersData.stats)) {
-        // Extract top 10 player names from the data
-        const playerNames: string[] = [];
-        const dataRows = playersData.stats.slice(1); // Skip header row
-        
-        for (let i = 0; i < Math.min(10, dataRows.length); i++) {
-          const row = dataRows[i];
-          if (row[0]) { // Assuming first column is player name
-            playerNames.push(String(row[0]));
-          }
-        }
-        
-        // Preload images for these players
-        if (playerNames.length > 0) {
-          import('./utils/imageUtils').then(({ preloadPlayerImages }) => {
-            preloadPlayerImages(playerNames);
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error preloading player images:', error);
-    }
-  };
-  preloadTopPlayerImages(); 
-  
-  
-}, []);
-  
+
+    
+    // Image preloading will be handled by useCacheInitializer
+  }, []);
+
+  // Block app rendering until critical data is loaded
+  if (!isInitialized) {
+    return <Preloader />;
+  }
 
   return (
     <BrowserRouter>
       <div className="app">
+        {/* Show update indicator when data is being refreshed */}
+        {isUpdating && (
+          <div className="update-toast show">
+            <div className="update-toast-content">
+              <span>Updating data...</span>
+            </div>
+          </div>
+        )}
+        
         <Header />
         <main>
-          
-            <Suspense fallback={<Preloader />}>
-              <Routes>
-                <Route path="/" element={<Home />} />
-                <Route path="/players" element={<Players />} />
-                <Route path="/players/:id" element={<PlayerDetail />} />
-                <Route path="/hall-of-fame" element={<HallOfFame />} />
-                <Route path="/leaderboard" element={<Leaderboard />} />
-                <Route path="/rules" element={<Rules />} />
-                <Route path="/stats" element={<Stats />} />
-                {/* Add more routes as needed */}
-               
-                
-              </Routes>
-            </Suspense>
-        
+          <Suspense fallback={<Preloader />}>
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/players" element={<Players />} />
+              <Route path="/players/:id" element={<PlayerDetail />} />
+              <Route path="/hall-of-fame" element={<HallOfFame />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/rules" element={<Rules />} />
+              <Route path="/stats" element={<Stats />} />
+              {/* Add more routes as needed */}
+            </Routes>
+          </Suspense>
         </main>
         <Footer />
         

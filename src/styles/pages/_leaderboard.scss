@@ -263,24 +263,27 @@
   border: 2px solid var(--borderColor);
 
   &.top-1 {
-    background: linear-gradient(135deg, #FFD700, #FFA500);
-    color: #fffdeb; // Dark text for gold background
     border-color: #FFD700;
-    box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
+    color: #FFD700;
+    background: rgba(255, 215, 0, 0.1);
+    font-weight: 700;
+    box-shadow: 0 0 8px rgba(255, 215, 0, 0.3);
   }
 
   &.top-2 {
-    background: linear-gradient(135deg, #C0C0C0, #A8A8A8);
-    color: #464646; // Dark text for silver background
-    border-color: #C0C0C0;
-    box-shadow: 0 2px 8px rgba(192, 192, 192, 0.3);
+   border-color: #C0C0C0;
+  color: #C0C0C0;
+  background: rgba(192, 192, 192, 0.1);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(192, 192, 192, 0.3);
   }
 
   &.top-3 {
-    background: linear-gradient(135deg, #CD7F32, #B8860B);
-    color: #ffffff; // White text for bronze background (better contrast)
     border-color: #CD7F32;
-    box-shadow: 0 2px 8px rgba(205, 127, 50, 0.3);
+  color: #CD7F32;
+  background: rgba(205, 127, 50, 0.1);
+  font-weight: 700;
+  box-shadow: 0 0 8px rgba(205, 127, 50, 0.3);
   }
 }
 
