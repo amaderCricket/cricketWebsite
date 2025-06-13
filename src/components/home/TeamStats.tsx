@@ -1,186 +1,131 @@
 // src/components/home/TeamStats.tsx
-import { useEffect, useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { cacheService } from '../../services/cacheService';
 
-// Define proper types
 interface StatsData {
   totalMatches: number;
   totalRunsScored: number;
   totalBallsBowled: number;
   allTimeHighestScore: number;
-  totalWickets: number;  // Changed from highestScorePlayer to totalWickets
+  totalWickets: number;
 }
 
 type DataRow = Array<string | number>;
-type PlayersData = Array<DataRow>;
 
 function TeamStats() {
-  // All-time stats from player data
   const [allTimeStats, setAllTimeStats] = useState<StatsData>({
     totalMatches: 0,
     totalRunsScored: 0,
     totalBallsBowled: 0,
     allTimeHighestScore: 0,
-    totalWickets: 0  // Changed from highestScorePlayer to totalWickets
+    totalWickets: 0
   });
-  
-  const [, setLoading] = useState(true);
-  
-  useEffect(() => {
-    async function fetchData() {
-      try {
-        setLoading(true);
-        // console.log("Fetching player statistics...");
-        
-        // Get player data for all-time stats
-        const playersData = await cacheService.fetchPlayers();
-        
-        // Calculate all-time statistics from player data
-        if (playersData && playersData.stats && Array.isArray(playersData.stats)) {
-          const allTimeStats = calculateAllTimeStats(playersData.stats);
-          setAllTimeStats(allTimeStats);
-          // console.log("All-time stats calculated:", allTimeStats);
-        }
-        
-        setLoading(false);
-      } catch (error) {
-        console.error("Error fetching stats data:", error);
-        setLoading(false);
-      }
-    }
-    
-    fetchData();
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  
-  // Calculate all-time statistics from player data
-  const calculateAllTimeStats = (playersData: PlayersData): StatsData => {
+
+  // NEW: Get stats from Hall of Fame Legendary Records section
+  const calculateAllTimeStats = async (hallOfFameData: DataRow[]): Promise<StatsData> => {
     const stats: StatsData = {
       totalMatches: 0,
       totalRunsScored: 0,
       totalBallsBowled: 0,
       allTimeHighestScore: 0,
-      totalWickets: 0  // Changed from highestScorePlayer to totalWickets
+      totalWickets: 0
     };
     
-    if (!playersData || playersData.length < 2) {
-      console.error("Invalid players data format");
+    if (!hallOfFameData || hallOfFameData.length < 5) {
+      console.error("Invalid Hall of Fame data format");
       return stats;
     }
     
     try {
-      // Get headers to find column indices
-      const headers = playersData[0];
-      // console.log("Stats headers:", headers);
+      // Legendary Records section - all in row 1, different column positions
+      const legendaryRecordsRow = hallOfFameData[1];
       
-      // Find the indices of the required columns
-      const matchesIndex = findColumnIndex(headers, ['Matches', 'matches']);
-      const runsIndex = findColumnIndex(headers, ['Runs Scored', 'runs scored', 'runs']);
-      const ballsBowledIndex = findColumnIndex(headers, ['Balls Bowled', 'balls bowled']);
-      const highestScoreIndex = findColumnIndex(headers, ['Highest Score', 'highest score']);
-      const wicketsIndex = findColumnIndex(headers, ['Wickets Taken', 'wickets taken', 'wickets']);  // Add wickets column
+      if (legendaryRecordsRow && legendaryRecordsRow.length >= 14) {
+        // Total Matches: index 12 = label, index 13 = value
+        stats.totalMatches = Number(legendaryRecordsRow[13]) || 0;
+      }
       
-      // Extract stats data
-      const dataRows = playersData.slice(1); // Skip header row
-      
-      // Calculate stats
-      let maxMatches = 0;
-      let totalRuns = 0;
-      let totalBallsBowled = 0;
-      let maxHighScore = 0;
-      let totalWickets = 0;  // Changed from highScorePlayer string to totalWickets number
-      
-      for (const row of dataRows) {
-        // Process matches count (find highest value)
-        if (matchesIndex !== -1 && row[matchesIndex] !== undefined) {
-          const matches = Number(row[matchesIndex]);
-          if (!isNaN(matches) && matches > maxMatches) {
-            maxMatches = matches;
-          }
-        }
-        
-        // Sum total runs scored
-        if (runsIndex !== -1 && row[runsIndex] !== undefined) {
-          const runs = Number(row[runsIndex]);
-          if (!isNaN(runs)) {
-            totalRuns += runs;
-          }
-        }
-        
-        // Sum total balls bowled
-        if (ballsBowledIndex !== -1 && row[ballsBowledIndex] !== undefined) {
-          const balls = Number(row[ballsBowledIndex]);
-          if (!isNaN(balls)) {
-            totalBallsBowled += balls;
-          }
-        }
-        
-        // Find highest score
-        if (highestScoreIndex !== -1 && row[highestScoreIndex] !== undefined) {
-          // Highest score might be in format like "76*" or "76 (50)" - extract the number
-          const scoreStr = String(row[highestScoreIndex]);
-          const scoreMatch = scoreStr.match(/^\d+/);
-          if (scoreMatch) {
-            const score = Number(scoreMatch[0]);
-            if (!isNaN(score) && score > maxHighScore) {
-              maxHighScore = score;
-            }
-          }
-        }
-        
-        // Sum total wickets taken
-        if (wicketsIndex !== -1 && row[wicketsIndex] !== undefined) {
-          const wickets = Number(row[wicketsIndex]);
-          if (!isNaN(wickets)) {
-            totalWickets += wickets;
-          }
+      // Row 2: Total Runs Scored  
+      const totalRunsRow = hallOfFameData[2];
+      if (totalRunsRow && totalRunsRow.length >= 14) {
+        // Find "Total Runs Scored" and get the next value
+        const totalRunsIndex = totalRunsRow.findIndex(cell => 
+          typeof cell === 'string' && cell.includes('Total Runs')
+        );
+        if (totalRunsIndex !== -1 && totalRunsRow[totalRunsIndex + 1]) {
+          stats.totalRunsScored = Number(totalRunsRow[totalRunsIndex + 1]) || 0;
         }
       }
       
-      return {
-        totalMatches: maxMatches,
-        totalRunsScored: totalRuns,
-        totalBallsBowled: totalBallsBowled,
-        allTimeHighestScore: maxHighScore,
-        totalWickets: totalWickets  // Return totalWickets
-      };
+      // Row 3: Total Balls Bowled
+      const totalBallsRow = hallOfFameData[3];
+      if (totalBallsRow && totalBallsRow.length >= 14) {
+        // Find "Total Balls Bowled" and get the next value
+        const totalBallsIndex = totalBallsRow.findIndex(cell => 
+          typeof cell === 'string' && cell.includes('Total Balls')
+        );
+        if (totalBallsIndex !== -1 && totalBallsRow[totalBallsIndex + 1]) {
+          stats.totalBallsBowled = Number(totalBallsRow[totalBallsIndex + 1]) || 0;
+        }
+      }
+      
+      // Row 4: Total Wickets Taken
+      const totalWicketsRow = hallOfFameData[4];
+      if (totalWicketsRow && totalWicketsRow.length >= 14) {
+        // Find "Total Wickets" and get the next value
+        const totalWicketsIndex = totalWicketsRow.findIndex(cell => 
+          typeof cell === 'string' && cell.includes('Total Wickets')
+        );
+        if (totalWicketsIndex !== -1 && totalWicketsRow[totalWicketsIndex + 1]) {
+          stats.totalWickets = Number(totalWicketsRow[totalWicketsIndex + 1]) || 0;
+        }
+      }
+      
+      // You can also get highest score from Hall of Fame if needed
+      // For now, keeping it as 0 or you can extract from appropriate row
+      stats.allTimeHighestScore = 0;
+      
+      return stats;
     } catch (error) {
-      console.error("Error calculating all-time stats:", error);
+      console.error("Error extracting Hall of Fame stats:", error);
       return stats;
     }
   };
-  
-  // Helper to find column index in header row
-  const findColumnIndex = (headers: DataRow, possibleNames: string[]): number => {
-    // First try exact match
-    for (const name of possibleNames) {
-      const index = headers.findIndex(
-        (header) => 
-          typeof header === 'string' && 
-          header.toLowerCase() === name.toLowerCase()
-      );
-      if (index !== -1) return index;
+
+  const fetchStats = useCallback(async (forceRefresh = false) => {
+    try {
+      // Fetch Hall of Fame data instead of player stats
+      const summaryData = await cacheService.fetchSummaryData(forceRefresh);
+      
+      if (summaryData && summaryData.hallOfFame && Array.isArray(summaryData.hallOfFame)) {
+        const stats = await calculateAllTimeStats(summaryData.hallOfFame);
+        setAllTimeStats(stats);
+      } else {
+        console.error("Hall of Fame data not found");
+      }
+    } catch (error) {
+      console.error("Error fetching Hall of Fame data:", error);
     }
+  }, []);
+
+  useEffect(() => {
+    fetchStats();
+  }, [fetchStats]);
+
+  // Listen for cache updates
+  useEffect(() => {
+    const removeListener = cacheService.onUpdate(() => {
+      fetchStats(true); // Force refresh when cache updates
+    });
     
-    // If exact match not found, try partial match
-    for (const name of possibleNames) {
-      const index = headers.findIndex(
-        (header) => 
-          typeof header === 'string' && 
-          header.toLowerCase().includes(name.toLowerCase())
-      );
-      if (index !== -1) return index;
-    }
-    
-    // Return -1 to indicate not found (rather than defaulting to first column)
-    return -1;
-  };
+    return () => removeListener();
+  }, [fetchStats]);
 
   return (
     <section className="team-stats" id="team-stats">
       <h2 className="section-title">Legacy of Matches</h2>
       
-      {/* All-time statistics from player data */}
+      {/* All-time statistics from Hall of Fame data */}
       <div className="season-stats">
         <div className="stats-row">
           <div className="stat-item">
