@@ -69,7 +69,7 @@ highlight?: boolean;
 type StatsView = 'general' | 'batting-summary' | 'batting-milestones' | 'batting-breakdown' | 'bowling-summary' | 'bowling-highlights' | 'bowling-breakdown';
 
 function Stats() {
-const [loading, setLoading] = useState(true);
+const [loading, setLoading] = useState(false);
 const [error, setError] = useState<string | null>(null);
 const [players, setPlayers] = useState<StatsPlayer[]>([]);
 const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
@@ -81,8 +81,154 @@ const [recentStatsView, setRecentStatsView] = useState<StatsView>('general');
 const [recentPlayers, setRecentPlayers] = useState<StatsPlayer[]>([]);
 const [recentPlayerImages, setRecentPlayerImages] = useState<Record<string, string>>({});
 
-const fetchStatsData = useCallback(async () => {
+const fetchStatsData = useCallback(async (forceRefresh = false) => {
   try {
+    // Check for cached data first
+    const cachedStatsString = localStorage.getItem('cached_stats_data');
+    const cachedRecentString = localStorage.getItem('cached_recent_stats_data');
+    
+    if ((cachedStatsString || cachedRecentString) && !forceRefresh) {
+      try {
+        // Process cached main stats
+        if (cachedStatsString) {
+          const cachedMainData = JSON.parse(cachedStatsString);
+          if (cachedMainData && Array.isArray(cachedMainData.stats)) {
+            const headers = cachedMainData.stats[0];
+            const dataRows = cachedMainData.stats.slice(1);
+
+            const getColumnIndex = (columnName: string): number => {
+              return headers.findIndex((header: string | number) =>
+                typeof header === 'string' && header.toLowerCase() === columnName.toLowerCase()
+              );
+            };
+
+            const parsedPlayers: StatsPlayer[] = dataRows.map((row: Array<string | number>, index: number) => ({
+              playerName: String(row[getColumnIndex('Player Name')] || ''),
+              rank: Number(row[getColumnIndex('Rank')] || index + 1),
+              matches: Number(row[getColumnIndex('Matches')] || 0),
+              innings: Number(row[getColumnIndex('Innings')] || 0),
+              battingRatings: Number(row[getColumnIndex('Batting Ratings')] || 0),
+              bowlingRatings: Number(row[getColumnIndex('Bowling Ratings')] || 0),
+              allRounderRatings: Number(row[getColumnIndex('All Rounder Ratings')] || 0),
+              ratings: String(row[getColumnIndex('Ratings')] || ''),
+              momAwards: Number(row[getColumnIndex('MoM Awards')] || 0),
+              winPercentage: Number(row[getColumnIndex('Win %')] || 0),
+              runsScored: Number(row[getColumnIndex('Runs Scored')] || 0),
+              ballsFaced: Number(row[getColumnIndex('Balls Faced')] || 0),
+              dismissals: Number(row[getColumnIndex('Dismissals')] || 0),
+              highestScore: String(row[getColumnIndex('Highest Score')] || ''),
+              notOuts: Number(row[getColumnIndex('Not Outs')] || 0),
+              ducks: Number(row[getColumnIndex('Ducks')] || 0),
+              goldenDucks: Number(row[getColumnIndex('Golden Ducks')] || 0),
+              thirties: Number(row[getColumnIndex('30s')] || 0),
+              fifties: Number(row[getColumnIndex('50s')] || 0),
+              seventies: Number(row[getColumnIndex('70s')] || 0),
+              battingAverage: Number(row[getColumnIndex('Batting Average')] || 0),
+              battingStrikeRate: Number(row[getColumnIndex('Batting Strike Rate')] || 0),
+              boundaryPercentage: Number(row[getColumnIndex('Boundary %')] || 0),
+              dotsTaken: Number(row[getColumnIndex('Dots Taken')] || 0),
+              singlesTaken: Number(row[getColumnIndex('Singles Taken')] || 0),
+              twosTaken: Number(row[getColumnIndex('Twos Taken')] || 0),
+              foursTaken: Number(row[getColumnIndex('Fours Taken')] || 0),
+              penalty: Number(row[getColumnIndex('Penalty')] || 0),
+              runsGiven: Number(row[getColumnIndex('Runs Given')] || 0),
+              ballsBowled: Number(row[getColumnIndex('Balls Bowled')] || 0),
+              wicketsTaken: Number(row[getColumnIndex('Wickets Taken')] || 0),
+              bestBowling: String(row[getColumnIndex('Best Bowling')] || ''),
+              threeWickets: Number(row[getColumnIndex('3 W')] || 0),
+              fiveWickets: Number(row[getColumnIndex('5 W')] || 0),
+              hattricks: Number(row[getColumnIndex('Hattricks')] || 0),
+              maidens: Number(row[getColumnIndex('Maidens')] || 0),
+              economy: Number(row[getColumnIndex('Economy')] || 0),
+              bowlingAverage: Number(row[getColumnIndex('Bowling Average')] || 0),
+              bowlingStrikeRate: Number(row[getColumnIndex('Bowling Strike Rate')] || 0),
+              dotsGiven: Number(row[getColumnIndex('Dots Given')] || 0),
+              twosGiven: Number(row[getColumnIndex('Twos Given')] || 0),
+              foursGiven: Number(row[getColumnIndex('Fours Given')] || 0),
+              extras: Number(row[getColumnIndex('Extras')] || 0),
+              worstBowling: String(row[getColumnIndex('Worst Bowling')] || ''),
+            })).filter((player: StatsPlayer) => player.playerName && player.playerName.trim() !== '');
+
+            setPlayers(parsedPlayers);
+            await loadPlayerImages(parsedPlayers, setPlayerImages);
+          }
+        }
+
+        // Process cached recent stats
+        if (cachedRecentString) {
+          const cachedRecentData = JSON.parse(cachedRecentString);
+          if (cachedRecentData && Array.isArray(cachedRecentData.stats)) {
+            const recentHeaders = cachedRecentData.stats[0];
+            const recentDataRows = cachedRecentData.stats.slice(1);
+
+            const getRecentColumnIndex = (columnName: string): number => {
+              return recentHeaders.findIndex((header: string | number) =>
+                typeof header === 'string' && header.toLowerCase() === columnName.toLowerCase()
+              );
+            };
+
+            const parsedRecentPlayers: StatsPlayer[] = recentDataRows.map((row: Array<string | number>, index: number) => ({
+              playerName: String(row[getRecentColumnIndex('Player Name')] || ''),
+              rank: Number(row[getRecentColumnIndex('Rank')] || index + 1),
+              matches: Number(row[getRecentColumnIndex('Matches')] || 0),
+              innings: Number(row[getRecentColumnIndex('Innings')] || 0),
+              battingRatings: Number(row[getRecentColumnIndex('Batting Ratings')] || 0),
+              bowlingRatings: Number(row[getRecentColumnIndex('Bowling Ratings')] || 0),
+              allRounderRatings: Number(row[getRecentColumnIndex('All Rounder Ratings')] || 0),
+              ratings: String(row[getRecentColumnIndex('Ratings')] || ''),
+              momAwards: Number(row[getRecentColumnIndex('MoM Awards')] || 0),
+              winPercentage: Number(row[getRecentColumnIndex('Win %')] || 0),
+              runsScored: Number(row[getRecentColumnIndex('Runs Scored')] || 0),
+              ballsFaced: Number(row[getRecentColumnIndex('Balls Faced')] || 0),
+              dismissals: Number(row[getRecentColumnIndex('Dismissals')] || 0),
+              highestScore: String(row[getRecentColumnIndex('Highest Score')] || ''),
+              notOuts: Number(row[getRecentColumnIndex('Not Outs')] || 0),
+              ducks: Number(row[getRecentColumnIndex('Ducks')] || 0),
+              goldenDucks: Number(row[getRecentColumnIndex('Golden Ducks')] || 0),
+              thirties: Number(row[getRecentColumnIndex('30s')] || 0),
+              fifties: Number(row[getRecentColumnIndex('50s')] || 0),
+              seventies: Number(row[getRecentColumnIndex('70s')] || 0),
+              battingAverage: Number(row[getRecentColumnIndex('Batting Average')] || 0),
+              battingStrikeRate: Number(row[getRecentColumnIndex('Batting Strike Rate')] || 0),
+              boundaryPercentage: Number(row[getRecentColumnIndex('Boundary %')] || 0),
+              dotsTaken: Number(row[getRecentColumnIndex('Dots Taken')] || 0),
+              singlesTaken: Number(row[getRecentColumnIndex('Singles Taken')] || 0),
+              twosTaken: Number(row[getRecentColumnIndex('Twos Taken')] || 0),
+              foursTaken: Number(row[getRecentColumnIndex('Fours Taken')] || 0),
+              penalty: Number(row[getRecentColumnIndex('Penalty')] || 0),
+              runsGiven: Number(row[getRecentColumnIndex('Runs Given')] || 0),
+              ballsBowled: Number(row[getRecentColumnIndex('Balls Bowled')] || 0),
+              wicketsTaken: Number(row[getRecentColumnIndex('Wickets Taken')] || 0),
+              bestBowling: String(row[getRecentColumnIndex('Best Bowling')] || ''),
+              threeWickets: Number(row[getRecentColumnIndex('3 W')] || 0),
+              fiveWickets: Number(row[getRecentColumnIndex('5 W')] || 0),
+              hattricks: Number(row[getRecentColumnIndex('Hattricks')] || 0),
+              maidens: Number(row[getRecentColumnIndex('Maidens')] || 0),
+              economy: Number(row[getRecentColumnIndex('Economy')] || 0),
+              bowlingAverage: Number(row[getRecentColumnIndex('Bowling Average')] || 0),
+              bowlingStrikeRate: Number(row[getRecentColumnIndex('Bowling Strike Rate')] || 0),
+              dotsGiven: Number(row[getRecentColumnIndex('Dots Given')] || 0),
+              twosGiven: Number(row[getRecentColumnIndex('Twos Given')] || 0),
+              foursGiven: Number(row[getRecentColumnIndex('Fours Given')] || 0),
+              extras: Number(row[getRecentColumnIndex('Extras')] || 0),
+              worstBowling: String(row[getRecentColumnIndex('Worst Bowling')] || ''),
+            })).filter((player: StatsPlayer) => player.playerName && player.playerName.trim() !== '');
+
+            setRecentPlayers(parsedRecentPlayers);
+            await loadPlayerImages(parsedRecentPlayers, setRecentPlayerImages);
+          }
+        }
+
+        // If we have cached data, return early
+        if (cachedStatsString || cachedRecentString) {
+          return;
+        }
+      } catch (e) {
+        console.error('Error parsing cached stats:', e);
+      }
+    }
+
+    // Only show loading if no cached data exists
     setLoading(true);
     
     // Fetch main stats
@@ -152,6 +298,9 @@ const fetchStatsData = useCallback(async () => {
       setPlayers(parsedPlayers);
       await loadPlayerImages(parsedPlayers, setPlayerImages);
 
+      // Cache the main stats data
+      localStorage.setItem('cached_stats_data', JSON.stringify(response.data));
+
       // Fetch recent stats
       try {
         console.log("Fetching recent stats...");
@@ -220,9 +369,12 @@ const fetchStatsData = useCallback(async () => {
 
           setRecentPlayers(parsedRecentPlayers);
           await loadPlayerImages(parsedRecentPlayers, setRecentPlayerImages);
+
+          // Cache the recent stats data
+          localStorage.setItem('cached_recent_stats_data', JSON.stringify(recentResponse.data));
         }
       } catch (recentError) {
-        console.error('Error loading recent stats:', recentError);
+        console.log('Error loading recent stats:', recentError);
         // Don't set error here, just log it so main stats still work
       }
 
@@ -648,7 +800,7 @@ return (
 
     {/* Recent 5 Match Stats Section */}
     <div className="recent-stats-section">
-    <h2 className="section-title">RECENT 5 MATCH STATS</h2>
+    <h2 className="section-title">RECENT PERFORMANCES</h2>
     <p className="section-description">
         "Performance statistics from the last 5 matches"
     </p>
