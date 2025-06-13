@@ -6,12 +6,15 @@ import { themeService, ThemeType } from '../../services/themeService'
 import SearchBar from './SearchBar'
 import { usePlayerData } from '../../hooks/usePlayerData'
 import { getPlayerImage } from '../../utils/imageUtils'
+import { cacheService } from '../../services/cacheService'
 
 
 function Header() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [isUpdating, setIsUpdating] = useState(false);
+  
+
   const location = useLocation();
   const navigate = useNavigate();
   
@@ -101,15 +104,20 @@ function Header() {
     setMenuOpen(!menuOpen);
   };
 
-  const handleLiveClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    setShowTooltip(true);
-    
-    // Hide tooltip after 3 seconds
-    setTimeout(() => {
-      setShowTooltip(false);
-    }, 3000);
-  };
+const handleUpdateClick = async (e: React.MouseEvent) => {
+  e.preventDefault();
+  setIsUpdating(true);
+  
+  try {
+    // Force update all data
+    await Promise.all([
+      cacheService.fetchSummaryData(true),
+      cacheService.fetchPlayers(true)
+    ]);
+  } finally {
+    setIsUpdating(false);
+  }
+};
   
   const handleNavigation = (path: string) => {
     navigate(path);
@@ -189,17 +197,19 @@ function Header() {
             </i>
           </button>
           
-          {/* Live Now Button */}
-          <div className="live-now-container">
-            <a href="#" className="live-now" onClick={handleLiveClick}>
-              <span className="dot"></span>
-              <span>Live Now</span>
+          {/* Update Button */}
+          <div className="update-button-container">
+            <a 
+              href="#" 
+              className={`update-button ${isUpdating ? 'updating' : ''}`} 
+              onClick={handleUpdateClick}
+              style={{ pointerEvents: isUpdating ? 'none' : 'auto' }}
+            >
+              <i className="material-icons">
+                {isUpdating ? 'hourglass_empty' : 'refresh'}
+              </i>
+              <span>{isUpdating ? 'Updating...' : 'Update'}</span>
             </a>
-            {showTooltip && (
-              <div className="coming-soon-tooltip">
-                Coming Soon!
-              </div>
-            )}
           </div>
         </div>
 

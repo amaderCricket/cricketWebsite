@@ -14,6 +14,20 @@ export const useCacheInitializer = () => {
 
   // Initialize the cache system
   useEffect(() => {
+
+        const handlePageShow = () => {
+        cacheService.checkForUpdates(true).then(needsUpdate => {
+          if (needsUpdate) {
+            Promise.all([
+              cacheService.fetchSummaryData(true),
+              cacheService.fetchPlayers(true)
+            ]);
+          }
+        });
+      };
+      
+      window.addEventListener('pageshow', handlePageShow);
+
       const initialize = async () => {
         try {
           // Load data silently in background (no loading state)
@@ -33,6 +47,8 @@ export const useCacheInitializer = () => {
       };
 
       initialize();
+      return () => {window.removeEventListener('pageshow', handlePageShow);};
+
     }, [hasInitializedUpdater]);
 
   // Listen for cache updates - only do this after initial load

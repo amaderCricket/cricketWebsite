@@ -72,7 +72,7 @@
         justify-content: center;
       }
       
-      .live-now-container {
+      .update-now-container {
         flex: 0 0 auto;
       }
     }
@@ -371,7 +371,7 @@
   }
 }
 
-.live-now-container {
+.update-now-container {
   position: relative;
  
 
@@ -401,32 +401,47 @@
   }
 }
   
-  .live-now {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    background-color: rgba(255, 255, 255, 0.1);
-    padding: 0.5rem 1rem;
-    border-radius: 50px;
-    color: white;
-    font-weight: 600;
-    text-decoration: none;
-    transition: background-color 0.3s;
-    cursor: pointer;
-    height: 38px; // Fixed height to ensure visibility
+.update-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: white;
+  text-decoration: none;
+  transition: all 0.3s ease;
 
-    &:hover {
-      background-color: rgba(255, 255, 255, 0.2);
-    }
-
-    .dot {
-      width: 10px;
-      height: 10px;
-      background-color: $danger-color;
-      border-radius: 50%;
-      animation: pulse 1.5s infinite;
+   &.updating {
+    opacity: 0.7;
+    cursor: not-allowed;
+    
+    i {
+      animation: spin 1s linear infinite;
     }
   }
+
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+  
+  &:hover {
+    background: rgba(255, 255, 255, 0.2);
+    transform: translateY(-1px);
+  }
+  
+  i {
+    font-size: 16px;
+  }
+  
+  span {
+    font-size: 14px;
+    font-weight: 500;
+  }
+}
 
   .coming-soon-tooltip {
     position: absolute;
