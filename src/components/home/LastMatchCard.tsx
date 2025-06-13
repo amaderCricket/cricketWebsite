@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
 import { getPlayerImage } from '../../utils/imageUtils';
 import { cacheService } from '../../services/cacheService';
-import { API_CONFIG } from '../../config/apiConfig';
+// import { API_CONFIG } from '../../config/apiConfig';
 
 // Enhanced interface to include individual stats
 interface PlayerWithImage extends PlayerTeamInfo {
