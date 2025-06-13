@@ -52,7 +52,9 @@ function Leaderboard() {
 
  const fetchLeaderboardData = async (forceRefresh = false) => {
     try {
+      if (!runScorers.length && !wicketTakers.length && !forceRefresh) {
       setLoading(true);
+    }
       
       // Fetch players data - now with the forceRefresh parameter
       const playersData = await cacheService.fetchPlayers(forceRefresh) as PlayersData;
@@ -119,12 +121,15 @@ function Leaderboard() {
       console.error('Error fetching leaderboard data:', error);
       setError('Failed to load leaderboard data');
     } finally {
+       if (!runScorers.length && !wicketTakers.length && !forceRefresh) {
       setLoading(false);
     }
+    }
   };
+
+
+
   useEffect(() => {
-
-
     fetchLeaderboardData();
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -140,23 +145,20 @@ function Leaderboard() {
   }, []); 
 
 
-  const loadPlayerImages = async (players: LeaderboardPlayer[]) => {
-    const images: Record<string, string> = {};
-    
-    for (const player of players) {
-      try {
-        const imageUrl = await getPlayerImage({ 
-          name: player.name, 
-          playerNameForImage: player.name 
-        });
-        images[player.name] = imageUrl;
-      } catch (error) {
-        console.error(`Error loading image for ${player.name}:`, error);
-      }
+ const loadPlayerImages = async (players: LeaderboardPlayer[]) => {
+  const images: Record<string, string> = {};
+  
+  for (const player of players) {
+    try {
+      const imageUrl = await cacheService.loadPlayerImage(player.name, getPlayerImage);
+      images[player.name] = imageUrl;
+    } catch (error) {
+      console.error(`Error loading image for ${player.name}:`, error);
     }
-    
-    setPlayerImages(images);
-  };
+  }
+  
+  setPlayerImages(images);
+};
 
   const handleSort = (data: LeaderboardPlayer[], key: 'runs' | 'wickets') => {
     const newOrder = sortOrder === 'desc' ? 'asc' : 'desc';

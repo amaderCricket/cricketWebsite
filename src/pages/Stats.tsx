@@ -82,11 +82,11 @@ const [recentPlayers, setRecentPlayers] = useState<StatsPlayer[]>([]);
 const [recentPlayerImages, setRecentPlayerImages] = useState<Record<string, string>>({});
 
 const fetchStatsData = useCallback(async (forceRefresh = false) => {
+  // Check for cached data first
+  const cachedStatsString = localStorage.getItem('cached_stats_data');
+  const cachedRecentString = localStorage.getItem('cached_recent_stats_data');
+  
   try {
-    // Check for cached data first
-    const cachedStatsString = localStorage.getItem('cached_stats_data');
-    const cachedRecentString = localStorage.getItem('cached_recent_stats_data');
-    
     if ((cachedStatsString || cachedRecentString) && !forceRefresh) {
       try {
         // Process cached main stats
@@ -228,8 +228,10 @@ const fetchStatsData = useCallback(async (forceRefresh = false) => {
       }
     }
 
-    // Only show loading if no cached data exists
-    setLoading(true);
+    //Only show loading if no cached data exists AND it's not a background refresh
+    if (!cachedStatsString && !cachedRecentString && !forceRefresh) {
+      setLoading(true);
+    }
     
     // Fetch main stats
     const response = await axios.get(`${API_CONFIG.baseUrl}?type=stats`);
@@ -385,7 +387,9 @@ const fetchStatsData = useCallback(async (forceRefresh = false) => {
     console.error('Error loading main stats:', mainError);
     setError('Failed to load stats data');
   } finally {
-    setLoading(false);
+     if (!cachedStatsString && !cachedRecentString && !forceRefresh) {
+      setLoading(false);
+    }
   }
 }, []);
 

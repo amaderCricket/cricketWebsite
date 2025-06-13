@@ -94,32 +94,15 @@ function Players() {
         await Promise.all(batch.map(async (player, batchIndex) => {
           try {
             // Check localStorage cache first
-            const cachedImageUrl = localStorage.getItem(`player_image_${player.playerNameForImage}`);
-            
-            if (cachedImageUrl) {
-              // Use cached image immediately
-              const index = i + batchIndex;
-              if (index < updatedPlayers.length) {
-                updatedPlayers[index].imageUrl = cachedImageUrl;
-                // Update state with this one loaded image
-                setPlayersWithImages([...updatedPlayers]);
-                handleImageLoad(player.name);
-              }
-            } else {
-              // Fetch image if not cached
-              const imageUrl = await getPlayerImage({ 
-                name: player.name, 
-                playerNameForImage: player.playerNameForImage 
-              });
-              
-              const index = i + batchIndex;
-              if (index < updatedPlayers.length) {
-                updatedPlayers[index].imageUrl = imageUrl;
-                // Update state with this one loaded image
-                setPlayersWithImages([...updatedPlayers]);
-                handleImageLoad(player.name);
-              }
-            }
+           const imageUrl = await cacheService.loadPlayerImage(player.name, getPlayerImage);
+
+          const index = i + batchIndex;
+          if (index < updatedPlayers.length) {
+            updatedPlayers[index].imageUrl = imageUrl;
+            // Update state with this one loaded image
+            setPlayersWithImages([...updatedPlayers]);
+            handleImageLoad(player.name);
+          }
           } catch (error) {
             console.error(`Error loading image for ${player.name}:`, error);
           }

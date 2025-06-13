@@ -19,12 +19,20 @@ export const getPlayerImage = async (player: {
   }
   
   // Try localStorage cache next (still fast)
-  const localCachedImage = localStorage.getItem(`${IMAGE_CACHE_PREFIX}${cacheKey}`);
-  if (localCachedImage) {
-    // Store in memory cache too
+// Try localStorage cache next (still fast)
+const localCachedImage = localStorage.getItem(`${IMAGE_CACHE_PREFIX}${cacheKey}`);
+if (localCachedImage) {
+  try {
+    const parsed = JSON.parse(localCachedImage);
+    const imageUrl = parsed.data || localCachedImage; // Handle both formats
+    imageCache[cacheKey] = imageUrl;
+    return imageUrl;
+  } catch {
+    // If parsing fails, treat as direct URL
     imageCache[cacheKey] = localCachedImage;
     return localCachedImage;
   }
+}
   
   try {
     // Try to dynamically import the JPG with race condition for faster loading

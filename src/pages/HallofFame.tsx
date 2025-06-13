@@ -47,27 +47,34 @@ function HallOfFame() {
     'Most Extras Given'
   ];
   
-    const fetchHallOfFameData = useCallback(async (forceRefresh = false) =>{
-    try {
+const fetchHallOfFameData = useCallback(async (forceRefresh = false) =>{
+  try {
+      // Only show loading if no cached data exists OR it's initial load
+      if (!hallOfFameData.length && !forceRefresh) {
         setLoading(true);
-        const summaryData = await cacheService.fetchSummaryData(forceRefresh);
+      }
+      
+      const summaryData = await cacheService.fetchSummaryData(forceRefresh);
+      
+      if (summaryData && summaryData.hallOfFame && Array.isArray(summaryData.hallOfFame)) {
+        const relevantData = summaryData.hallOfFame.slice(0, 19);
+        setHallOfFameData(relevantData);
         
-        if (summaryData && summaryData.hallOfFame && Array.isArray(summaryData.hallOfFame)) {
-          const relevantData = summaryData.hallOfFame.slice(0, 19);
-          setHallOfFameData(relevantData);
-          
-          // Load player images
-          await loadPlayerImages(relevantData);
-        } else {
-          setError('Hall of Fame data not found or in unexpected format');
-        }
-      } catch (err) {
-        console.error('Error fetching Hall of Fame data:', err);
-        setError('Failed to load Hall of Fame data');
-      } finally {
+        // Load player images
+        await loadPlayerImages(relevantData);
+      } else {
+        setError('Hall of Fame data not found or in unexpected format');
+      }
+    } catch (err) {
+      console.error('Error fetching Hall of Fame data:', err);
+      setError('Failed to load Hall of Fame data');
+    } finally {
+      // Only hide loading if it was shown
+      if (!hallOfFameData.length && !forceRefresh) {
         setLoading(false);
       }
-    }, []);
+    }
+}, [hallOfFameData.length]);
 
 
     useEffect(() => {
@@ -84,28 +91,25 @@ function HallOfFame() {
     fetchHallOfFameData();
   }, [fetchHallOfFameData]);
 
-  const loadPlayerImages = async (data: string[][]) => {
-    const images: Record<string, string> = {};
-    
-    for (let row = 1; row < data.length; row++) {
-      for (let col = 1; col < data[row].length; col += 4) {
-        const playerName = data[row][col];
-        if (playerName && playerName !== '') {
-          try {
-            const imageUrl = await getPlayerImage({ 
-              name: playerName, 
-              playerNameForImage: playerName 
-            });
-            images[playerName] = imageUrl;
-          } catch (error) {
-            console.error(`Error loading image for ${playerName}:`, error);
-          }
+ const loadPlayerImages = async (data: string[][]) => {
+  const images: Record<string, string> = {};
+  
+  for (let row = 1; row < data.length; row++) {
+    for (let col = 1; col < data[row].length; col += 4) {
+      const playerName = data[row][col];
+      if (playerName && playerName !== '') {
+        try {
+          const imageUrl = await cacheService.loadPlayerImage(playerName, getPlayerImage);
+          images[playerName] = imageUrl;
+        } catch (error) {
+          console.error(`Error loading image for ${playerName}:`, error);
         }
       }
     }
-    
-    setPlayerImages(images);
-  };
+  }
+  
+  setPlayerImages(images);
+};
 
  const getCategoryData = (categoryIndex: number): AchievementItem[] => {
   const data: AchievementItem[] = [];

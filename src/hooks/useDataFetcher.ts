@@ -24,7 +24,9 @@ export const useDataFetcher = (): UseDataFetcherResult => {
 
   const fetchData = useCallback(async (forceRefresh = false): Promise<void> => {
     try {
+       if (!data && !forceRefresh) {
       setLoading(true);
+    }
       // Use cacheService instead of direct API call
       const result = await cacheService.fetchSummaryData(forceRefresh);
       // console.log('Summary data loaded');
@@ -37,7 +39,12 @@ export const useDataFetcher = (): UseDataFetcherResult => {
       setLoading(false);
       console.error('Error in data fetcher hook:', err);
     }
-  }, []);
+    finally {
+    // Only hide loading if it was shown
+    if (!data && !forceRefresh) {
+      setLoading(false);
+    }
+  }}, [data]);
 
   // Load data initially
   useEffect(() => {
