@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import logo from '../../assets/logo.png'
 import { themeService, ThemeType } from '../../services/themeService'
-import SearchBar from './SearchBar'
+// import SearchBar from './SearchBar'
 import { usePlayerData } from '../../hooks/usePlayerData'
 import { getPlayerImage } from '../../utils/imageUtils'
 import { cacheService } from '../../services/cacheService'
@@ -26,7 +26,7 @@ function Header() {
     imageUrl: string;
   }
 
-  const [playersWithImages, setPlayersWithImages] = useState<PlayerWithImage[]>([]);
+  const [, setPlayersWithImages] = useState<PlayerWithImage[]>([]);
 
   // Add this state inside the Header component
   const [currentTheme, setCurrentTheme] = useState<ThemeType>('light');
@@ -168,7 +168,7 @@ const handleUpdateClick = async (e: React.MouseEvent) => {
         {/* Right: Action Buttons */}
         <div className="action-buttons">
           {/* Search */}
-          <SearchBar players={playersWithImages} />
+          {/* <SearchBar players={playersWithImages} /> */}
 
           <button 
             className="download-button" 
