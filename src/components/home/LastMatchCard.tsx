@@ -1,62 +1,49 @@
-// src/components/home/LastMatchCard.tsx
-import { useEffect, useState, useMemo, memo } from 'react';
-import { Link } from 'react-router-dom';
-import { fetchLastMatchData, LastMatchInfo, PlayerTeamInfo } from '../../services/matchDataService';
-import { getPlayerImage } from '../../utils/imageUtils';
-import { cacheService } from '../../services/cacheService';
+import React, { useState, useEffect } from 'react';
 
-// Enhanced interface to include individual stats
-interface PlayerWithImage extends PlayerTeamInfo {
-  imageUrl: string;
-  runsScored?: number | string;
-  ballsFaced?: number | string;
-  dismissals?: number | string;
-  runsGiven?: number | string;
-  ballsBowled?: number | string;
-  wicketsTaken?: number | string;
+import { API_CONFIG } from '../../config/apiConfig';
+
+interface MatchData {
+  matchNo: number;
+  teamA: {
+    name: string;
+    total: string;
+    players: Array<{
+      name: string;
+      runs: string;
+      wickets: string;
+    }>;
+  };
+  teamB: {
+    name: string;
+    total: string;
+    players: Array<{
+      name: string;
+      runs: string;
+      wickets: string;
+    }>;
+  };
+  mom: string;
+  result: string;
 }
 
-// Format player stats into a readable string
-const formatPlayerStats = (player: PlayerWithImage): string => {
-  let stats = '';
-  
-  // Batting stats
-  if (player.runsScored !== undefined && player.ballsFaced !== undefined) {
-    // Add asterisk for not out
-    const notOut = player.dismissals === 0 || player.dismissals === '0';
-    stats += `${player.runsScored}${notOut ? '*' : ''}(${player.ballsFaced})`;
-  }
-  
-  // Bowling stats - only add if wickets were taken
-  if (player.wicketsTaken !== undefined && 
-      Number(player.wicketsTaken) > 0) {
-    // Add separator if we already have batting stats
-    if (stats) stats += ' ';
-    stats += `/ W (${player.wicketsTaken})`;
-  }
-  
-  return stats;
-};
+interface PlayerWithImage {
+  name: string;
+  runs: string;
+  wickets: string;
+  imageUrl: string;
+  isManOfMatch: boolean;
+}
 
-// Memoized player item component to prevent re-renders
-const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => {
-  // Format the player stats
-  const statsString = formatPlayerStats(player);
-  
+const PlayerItem: React.FC<{ player: PlayerWithImage }> = ({ player }) => {
   return (
     <li className="player-item">
-      <Link to={`/players/${player.playerName}`} className="player-link">
+      <div className="player-link">
         <div 
           className="player-avatar"
           style={{ backgroundImage: `url(${player.imageUrl})` }}
         />
         <div className="player-info">
-          <span className="player-name">{player.playerName}</span>
-          {statsString && (
-            <span className="player-match-stats">
-              {statsString}
-            </span>
-          )}
+          <span className="player-name">{player.name}</span>
           {player.isManOfMatch && (
             <span className="mom-badge">
               <i className="material-icons">star</i>
@@ -64,390 +51,358 @@ const PlayerItem = memo(({ player }: { player: PlayerWithImage }) => {
             </span>
           )}
         </div>
-      </Link>
+        <div className="player-match-stats">
+          {player.runs}, {player.wickets}
+        </div>
+      </div>
     </li>
   );
-});
+};
 
-PlayerItem.displayName = 'PlayerItem';
+const MatchCard: React.FC<{ match: MatchData; playerImages: Record<string, string> }> = ({ match, playerImages }) => {
+  // Determine which team batted first based on result
+  const isTeamAWinner = match.result.toLowerCase().includes(match.teamA.name.toLowerCase());
+  const teamABattedFirst = match.result.includes('wickets'); // If won by wickets, the winning team batted second
+  
+  const leftTeam = teamABattedFirst ? match.teamA : match.teamB;
+  const rightTeam = teamABattedFirst ? match.teamB : match.teamA;
+  
+  const leftPlayers: PlayerWithImage[] = leftTeam.players.map(player => ({
+    ...player,
+    imageUrl: playerImages[player.name] || '/src/assets/players/blank_image.png',
+    isManOfMatch: player.name === match.mom
+  }));
+  
+  const rightPlayers: PlayerWithImage[] = rightTeam.players.map(player => ({
+    ...player,
+    imageUrl: playerImages[player.name] || '/src/assets/players/blank_image.png',
+    isManOfMatch: player.name === match.mom
+  }));
 
-function LastMatchCard() {
-  const [matchData, setMatchData] = useState<LastMatchInfo | null>(null);
-  const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
-  const [isLoading, setIsLoading] = useState(false); // Changed to false initially
-  const [error, setError] = useState<string | null>(null);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  
-  // Memoize player lists with enhanced stats
-  const { winnerPlayers, loserPlayers } = useMemo(() => {
-    if (!matchData || !matchData.players) {
-      return { winnerPlayers: [], loserPlayers: [] };
-    }
-    
-    const winner = matchData.teams.find(team => team.result === 'Won');
-    const loser = matchData.teams.find(team => team.result === 'Lost');
-    
-    if (!winner || !loser) {
-      return { winnerPlayers: [], loserPlayers: [] };
-    }
-    
-    // Create enhanced player objects with stats and image URLs
-    const playersWithImgs = matchData.players.map((player): PlayerWithImage => ({
-      ...player,
-      imageUrl: playerImages[player.playerName] || '/src/assets/players/blank_image.png',
-      runsScored: player.runsScored,
-      ballsFaced: player.ballsFaced,
-      dismissals: player.dismissals,
-      runsGiven: player.runsGiven,
-      ballsBowled: player.ballsBowled,
-      wicketsTaken: player.wicketsTaken
-    }));
-    
-    const winnerPlayersList = playersWithImgs.filter(player => 
-      player.teams.includes(winner.teamName)
-    );
-    
-    const loserPlayersList = playersWithImgs.filter(player => 
-      player.teams.includes(loser.teamName)
-    );
-       
-    return {
-      winnerPlayers: winnerPlayersList,
-      loserPlayers: loserPlayersList
-    };
-  }, [matchData, playerImages]);
-  
-  // Load match data
-  useEffect(() => {
-    // Get cached data immediately (don't set loading state)
-    const loadCachedData = () => {
-      const cachedDataString = localStorage.getItem('cached_last_match');
-      if (cachedDataString) {
-        try {
-          const cachedData = JSON.parse(cachedDataString);
-          setMatchData(cachedData);
-          return true;
-        } catch (e) {
-          console.error('Error parsing cached data:', e);
-          return false;
-        }
-      }
-      return false;
-    };
-    
-    // Try to load cached data first
-    const hasCachedData = loadCachedData();
-    
-    // Then fetch fresh data in background without showing loading state
-    const loadFreshData = async () => {
-      try {
-        // Only show loading state if we don't have cached data
-        if (!hasCachedData) {
-          setIsLoading(true);
-        }
-        
-        const data = await fetchLastMatchData(true);
-        
-        if (data) {
-          localStorage.setItem('cached_last_match', JSON.stringify(data));
-          setMatchData(data);
-          setError(null);
-        } else if (!hasCachedData) {
-          // Only show error if we don't have cached data
-          setError('No match data available');
-        }
-      } catch (err) {
-        console.error('Error loading fresh match data:', err);
-        if (!hasCachedData) {
-          // Only show error if we don't have cached data
-          setError('Failed to load match data');
-        }
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadFreshData();
-    
-    // Set up interval to periodically check for updates without showing loading state
-    const refreshInterval = setInterval(() => {
-      fetchLastMatchData(true)
-        .then(freshData => {
-          if (freshData) {
-            localStorage.setItem('cached_last_match', JSON.stringify(freshData));
-            setMatchData(freshData);
-          }
-        })
-        .catch(err => {
-          console.error('Error in periodic refresh:', err);
-          // Don't update UI on background refresh errors
-        });
-    }, 5 * 60 * 1000); // Check every 5 minutes
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, []);
-  
-  // Load player images separately with lower priority
-  useEffect(() => {
-    if (!matchData || !matchData.players) return;
-    
-    const loadPlayerImages = async () => {
-      for (let i = 0; i < matchData.players.length; i++) {
-        const player = matchData.players[i];
-        
-        try {
-          // USE NEW METHOD:
-         const imageUrl = await cacheService.loadPlayerImage(player.playerName, getPlayerImage);
-          
-          setPlayerImages(prev => ({ 
-            ...prev, 
-            [player.playerName]: imageUrl 
-          }));
-          
-        } catch (error) {
-          console.error(`Error loading image:`, error);
-        }
-      }
-    };
-    
-    // Start loading images after a short delay
-    const timer = setTimeout(() => {
-      loadPlayerImages();
-    }, 200);
-    
-    return () => clearTimeout(timer);
-  }, [matchData]);
-  
-  // Manual refresh function for refresh button
-  const handleRefresh = async () => {
-    try {
-      setIsRefreshing(true); // Show small indicator only for manual refresh
-      const data = await fetchLastMatchData(true);
-      
-      if (data) {
-        localStorage.setItem('cached_last_match', JSON.stringify(data));
-        setMatchData(data);
-        setError(null);
-      } else {
-        setError('No match data available');
-      }
-    } catch (err) {
-      console.error('Error refreshing match data:', err);
-      setError('Failed to refresh match data');
-    } finally {
-      setIsRefreshing(false);
-    }
-  };
-  
-  // Format date
-  const formatDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) {
-        return dateString;
-      }
-      return date.toLocaleDateString('en-US', { 
-        weekday: 'long',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-      });
-    } catch {
-      return dateString;
-    }
-  };
+  // Calculate match date (you can modify this logic based on your data)
+  const matchDate = new Date().toLocaleDateString(); // Placeholder
 
-  // Calculate run difference
-  const calculateRunDifference = (winnerScore: string, loserScore: string): number => {
-    try {
-      const winnerRuns = parseInt(winnerScore.split('/')[0]);
-      const loserRuns = parseInt(loserScore.split('/')[0]);
-      return winnerRuns - loserRuns;
-    } catch {
-      return 0;
-    }
-  };
-  
-  // If we have an error and no data, show error state
-  if ((error && !matchData) || (!matchData && !isLoading)) {
-    return (
-      <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
-        <div className="last-match-error">
-          <p>{error || 'No match data available'}</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--primaryColor)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isRefreshing ? 'Refreshing...' : 'Try Again'}
-          </button>
-        </div>
-      </section>
-    );
-  }
-  
-  // No data yet, but we're loading - show minimal UI
-  if (!matchData && isLoading) {
-    return (
-      <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
-        <div className="last-match-card" style={{ minHeight: '200px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <p style={{ color: 'var(--textSecondary)', fontStyle: 'italic' }}>Loading match information...</p>
-        </div>
-      </section>
-    );
-  }
-  
-  // We have data, render normally
-  const winner = matchData?.teams.find(team => team.result === 'Won');
-  const loser = matchData?.teams.find(team => team.result === 'Lost');
-  
-  if (!winner || !loser) {
-    return (
-      <section className="last-match-section">
-        <h2 className="section-title">Last Match</h2>
-        <div className="last-match-error">
-          <p>Invalid match data</p>
-          <button 
-            onClick={handleRefresh}
-            className="refresh-button"
-            style={{
-              marginTop: '1rem',
-              padding: '0.5rem 1rem',
-              backgroundColor: 'var(--primaryColor)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '0.25rem',
-              cursor: 'pointer'
-            }}
-          >
-            {isRefreshing ? 'Refreshing...' : 'Refresh Data'}
-          </button>
-        </div>
-      </section>
-    );
-  }
-  
   return (
-    <section className="last-match-section">
-      <h2 className="section-title">
-        Last Match
-        <button 
-          onClick={handleRefresh}
-          className="refresh-icon"
-          title="Refresh match data"
-          style={{
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            marginLeft: '0.5rem',
-            padding: '0.25rem',
-            color: 'var(--primaryColor)',
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: '1rem'
-          }}
-        >
-          <i className="material-icons" style={{ 
-            fontSize: '1.25rem', 
-            animation: isRefreshing ? 'spin 1s linear infinite' : 'none' 
-          }}>
-            {isRefreshing ? 'sync' : 'refresh'}
-          </i>
-        </button>
-      </h2>
+    <div className="last-match-card">
+      {/* Match date header */}
+      <div className="match-date-header">
+        <span className="date-label">Played on</span>
+        <span className="date-value">{matchDate}</span>
+      </div>
       
-      <div className="last-match-card">
-        {/* Match date */}
-        <div className="match-date-header">
-          <span className="date-label">Played on</span>
-          <span className="date-value">{matchData ? formatDate(matchData.date) : 'N/A'}</span>
-        </div>
-        
-        {/* Teams container */}
-        <div className="teams-container">
-          {/* Winner Team */}
-          <div className="team-card winner">
-            <div className="team-header">
-              <h3 className="team-name">{winner.teamName}</h3>
+      {/* Teams Container */}
+      <div className="teams-container">
+        {/* Left Team */}
+        <div className={`team-card ${(teamABattedFirst ? isTeamAWinner : !isTeamAWinner) ? 'winner' : 'loser'}`}>
+          <div className="team-header">
+            <h3 className="team-name">{leftTeam.name}</h3>
+            {(teamABattedFirst ? isTeamAWinner : !isTeamAWinner) && (
               <div className="result-badge winner">
                 <i className="material-icons">emoji_events</i>
                 Won
               </div>
-            </div>
-            
-            <div className="team-score">
-              <span className="score">{winner.score}</span>
-            </div>
-            
-            <div className="team-players">
-              <h4>Players</h4>
-              <ul>
-                {winnerPlayers.map((player) => (
-                  <PlayerItem key={player.playerName} player={player} />
-                ))}
-              </ul>
-            </div>
-          </div>
-          
-          {/* VS Divider */}
-          <div className="vs-divider">
-            <span>VS</span>
-          </div>
-          
-          {/* Loser Team */}
-          <div className="team-card loser">
-            <div className="team-header">
-              <h3 className="team-name">{loser.teamName}</h3>
+            )}
+            {!(teamABattedFirst ? isTeamAWinner : !isTeamAWinner) && (
               <div className="result-badge loser">
                 Lost
               </div>
-            </div>
-            
-            <div className="team-score">
-              <span className="score">{loser.score}</span>
-            </div>
-            
-            <div className="team-players">
-              <h4>Players</h4>
-              <ul>
-                {loserPlayers.map((player) => (
-                  <PlayerItem key={player.playerName} player={player} />
-                ))}
-              </ul>
-            </div>
+            )}
+          </div>
+          
+          <div className="team-score">
+            <span className="score">{leftTeam.total}</span>
+          </div>
+          
+          <div className="team-players">
+            <h4>Players</h4>
+            <ul>
+              {leftPlayers.map((player, idx) => (
+                <PlayerItem key={idx} player={player} />
+              ))}
+            </ul>
           </div>
         </div>
         
-        {/* Match summary */}
-        <div className="match-summary">
-          <p>
-            <strong>{winner.teamName}</strong> won by{' '}
-            <strong>{calculateRunDifference(winner.score, loser.score)} runs</strong>
-          </p>
+        {/* VS Divider */}
+        <div className="vs-divider">
+          <span>VS</span>
+        </div>
+        
+        {/* Right Team */}
+        <div className={`team-card ${(teamABattedFirst ? !isTeamAWinner : isTeamAWinner) ? 'winner' : 'loser'}`}>
+          <div className="team-header">
+            <h3 className="team-name">{rightTeam.name}</h3>
+            {(teamABattedFirst ? !isTeamAWinner : isTeamAWinner) && (
+              <div className="result-badge winner">
+                <i className="material-icons">emoji_events</i>
+                Won
+              </div>
+            )}
+            {!(teamABattedFirst ? !isTeamAWinner : isTeamAWinner) && (
+              <div className="result-badge loser">
+                Lost
+              </div>
+            )}
+          </div>
+          
+          <div className="team-score">
+            <span className="score">{rightTeam.total}</span>
+          </div>
+          
+          <div className="team-players">
+            <h4>Players</h4>
+            <ul>
+              {rightPlayers.map((player, idx) => (
+                <PlayerItem key={idx} player={player} />
+              ))}
+            </ul>
+          </div>
         </div>
       </div>
       
-      <style >{`
-        @keyframes spin {
-          0% { transform: rotate(0deg); }
-          100% { transform: rotate(360deg); }
+      {/* Match summary */}
+      <div className="match-summary">
+        <p>
+          <strong>{match.result}</strong>
+        </p>
+      </div>
+    </div>
+  );
+};
+
+const LastMatchCard: React.FC = () => {
+  const [matches, setMatches] = useState<MatchData[]>([]);
+  const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [playerImages, setPlayerImages] = useState<Record<string, string>>({});
+
+  // Fetch recent matches data
+  const fetchRecentMatches = async () => {
+    try {
+      setIsLoading(true);
+      
+      const response = await fetch(`${API_CONFIG.baseUrl}?type=recentmatches`);
+      
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const responseText = await response.text();
+      console.log('Raw response:', responseText.substring(0, 200) + '...');
+      
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON parse error:', parseError);
+        console.error('Response text that failed to parse:', responseText.substring(0, 100));
+        throw new Error(`Invalid JSON response: ${responseText.substring(0, 100)}...`);
+      }
+      
+      if (!data.stats || !Array.isArray(data.stats)) {
+        throw new Error('Invalid data format');
+      }
+      
+      // Find header rows
+      const headerRows: number[] = [];
+      data.stats.forEach((row: (string | number)[], index: number) => {
+        if (row[0] === "Match No") {
+          headerRows.push(index);
         }
-      `}</style>
+      });
+      
+      // Extract matches (limit to last 5)
+      const extractedMatches: MatchData[] = [];
+      headerRows.slice(0, 5).forEach((headerIndex, matchIndex) => {
+        const nextHeaderIndex = headerRows[matchIndex + 1] || data.stats.length;
+        const matchRows = data.stats.slice(headerIndex, nextHeaderIndex);
+        
+        const firstDataRow = matchRows[1];
+        if (!firstDataRow) return;
+        
+        const matchInfo: MatchData = {
+          matchNo: firstDataRow[0],
+          teamA: {
+            name: firstDataRow[1],
+            total: firstDataRow[5],
+            players: []
+          },
+          teamB: {
+            name: firstDataRow[6], 
+            total: firstDataRow[10],
+            players: []
+          },
+          mom: firstDataRow[11],
+          result: firstDataRow[12]
+        };
+        
+        // Extract players
+        for (let i = 1; i < matchRows.length; i++) {
+          const row = matchRows[i];
+          if (!row[2] || row[2] === "#N/A" || row[2] === "") continue;
+          
+          if (row[2]) {
+            matchInfo.teamA.players.push({
+              name: row[2],
+              runs: row[3],
+              wickets: row[4]
+            });
+          }
+          
+          if (row[7]) {
+            matchInfo.teamB.players.push({
+              name: row[7],
+              runs: row[8],
+              wickets: row[9] 
+            });
+          }
+        }
+        
+        extractedMatches.push(matchInfo);
+      });
+      
+      setMatches(extractedMatches);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch matches');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Load player images
+  useEffect(() => {
+    const loadPlayerImages = async () => {
+      const imageMap: Record<string, string> = {};
+      const allPlayers = new Set<string>();
+      
+      matches.forEach(match => {
+        match.teamA.players.forEach(p => allPlayers.add(p.name));
+        match.teamB.players.forEach(p => allPlayers.add(p.name));
+      });
+      
+      for (const playerName of allPlayers) {
+        imageMap[playerName] = '/src/assets/players/blank_image.png';
+      }
+      
+      setPlayerImages(imageMap);
+    };
+    
+    if (matches.length > 0) {
+      loadPlayerImages();
+    }
+  }, [matches]);
+
+  useEffect(() => {
+    fetchRecentMatches();
+  }, []);
+
+  const handlePrevMatch = () => {
+    setCurrentMatchIndex(prev => (prev > 0 ? prev - 1 : matches.length - 1));
+  };
+
+  const handleNextMatch = () => {
+    setCurrentMatchIndex(prev => (prev < matches.length - 1 ? prev + 1 : 0));
+  };
+
+  if (isLoading) {
+    return (
+      <section className="last-match-section">
+        <h2 className="section-title">Recent Matches</h2>
+        <div className="last-match-loading">
+          <div className="spinner"></div>
+          <div>Loading recent matches...</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (error) {
+    return (
+      <section className="last-match-section">
+        <h2 className="section-title">Recent Matches</h2>
+        <div className="last-match-error">
+          <div>Error: {error}</div>
+        </div>
+      </section>
+    );
+  }
+
+  if (matches.length === 0) {
+    return (
+      <section className="last-match-section">
+        <h2 className="section-title">Recent Matches</h2>
+        <div className="last-match-loading">
+          <div>No recent matches found</div>
+        </div>
+      </section>
+    );
+  }
+
+  return (
+    <section className="last-match-section">
+      <h2 className="section-title">Recent Matches</h2>
+      
+      <div className="max-w-4xl">
+        {/* Match Slider */}
+        <div className="relative">
+          <div className="overflow-hidden rounded-xl">
+            <div 
+              className="flex transition-transform duration-300 ease-in-out"
+              style={{ transform: `translateX(-${currentMatchIndex * 100}%)` }}
+            >
+              {matches.map((match, index) => (
+                <MatchCard key={index} match={match} playerImages={playerImages} />
+              ))}
+            </div>
+          </div>
+          
+          {/* Navigation Arrows */}
+          {matches.length > 1 && (
+            <>
+              <button
+                onClick={handlePrevMatch}
+                className="absolute left-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white shadow-lg border hover:bg-gray-50 transition-colors"
+                aria-label="Previous match"
+              >
+                
+              </button>
+              
+              <button
+                onClick={handleNextMatch}
+                className="absolute right-4 top-1/2 -translate-y-1/2 p-2 rounded-full bg-white shadow-lg border hover:bg-gray-50 transition-colors"
+                aria-label="Next match"
+              >
+                
+              </button>
+            </>
+          )}
+        </div>
+        
+        {/* Match Indicators */}
+        {matches.length > 1 && (
+          <div className="flex justify-center gap-2 mt-6">
+            {matches.map((_, index) => (
+              <button
+                key={index}
+                onClick={() => setCurrentMatchIndex(index)}
+                className={`w-3 h-3 rounded-full transition-colors ${
+                  index === currentMatchIndex 
+                    ? 'bg-blue-600' 
+                    : 'bg-gray-300'
+                }`}
+                aria-label={`Go to match ${index + 1}`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </section>
   );
-}
+};
 
 export default LastMatchCard;
